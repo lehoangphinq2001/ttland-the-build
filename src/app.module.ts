@@ -12,7 +12,6 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { AUTH_TOKEN_EXPIRATION } from './common/common.constant';
 import { MbtilesModule } from './mbtiles/mbtiles.module';
-import { CoordinatesModule } from './coordinates/coordinates.module';
 import { LocationNewModule } from './location-new/location-new.module';
 import { SecurityMiddleware } from './common/ip-block.middleware';
 import { LogIpMiddleware } from './common/log-ip.middleware';
@@ -50,7 +49,6 @@ import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
     }),
     JwtModule,
     MbtilesModule,
-    CoordinatesModule,
     LocationNewModule,
     ControllerDgnModule,
   ],
