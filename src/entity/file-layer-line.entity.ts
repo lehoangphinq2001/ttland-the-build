@@ -17,6 +17,9 @@ export class FileLayerLine {
   @Column({ length: 155 })
   filename: string;
 
+  @Column({ length: 55, nullable: true })
+  extension: string;
+
   @Column({ length: 255 })
   fullname: string; //
 

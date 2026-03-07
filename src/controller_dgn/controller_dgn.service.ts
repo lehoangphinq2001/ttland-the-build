@@ -27,24 +27,35 @@ export class ControllerDgnService {
     // B1: convert geojson
     var pathFile = await this.createFileGeoJson(createControllerDgnDto);
 
+    var dataLine = new FileLayerLine();
+    dataLine.accountId = 1;
+    dataLine.provinceNewId = provinceNewId;
+    dataLine.wardNewId = wardNewId;
+    dataLine.provinceId = provinceId;
+    dataLine.districtId = districtId;
+    dataLine.wardId = wardId;
+    dataLine.year = year;
+    dataLine.note = null;
+    dataLine.ssn = provinceId == null ? false : true;
+    if (pathFile) {
+      // dataLine.fullname = pathFile; // đường dẫn đầy đủ
+      // dataLine.filename = path.basename(pathFile); // chỉ tên file
+      dataLine.filename = path.parse(pathFile).name + '.mbtiles';
+      // dataLine.extension = path.parse(pathFile).ext;
+      dataLine.fullname = pathFile;
+    }
+    await this.repository.save(dataLine);
+
     // B2: convert mbtiles
     try {
       if (!pathFile) return null;
       const pathFolder = SAVE_FILE.DGN_FILE;
-console.log(1);
-
       // đảm bảo folder tồn tại
       await fsp.mkdir(pathFolder, { recursive: true });
-console.log(2);
       // tên file không có extension
       const fileName = path.parse(pathFile).name;
-console.log(3);
       // output mbtiles
       const output = path.join(pathFolder, `${fileName}.mbtiles`);
-
-      console.log('GeoJSON input:', pathFile);
-      console.log('MBTiles output:', output);
-
       // gọi tippecanoe
       const result = await this.convertGeoJsonToMbtilesUpdate(pathFile, output);
       return result;
