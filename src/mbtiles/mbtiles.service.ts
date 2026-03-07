@@ -11,9 +11,8 @@ import {
 } from '@nestjs/common';
 import { CommonService } from 'src/common/common.service';
 import { HttpService } from '@nestjs/axios';
-import type { Response, Request } from 'express';
 import { Redis } from 'ioredis';
-import Database from 'better-sqlite3';
+import Database from "better-sqlite3";
 import path from 'path';
 @Injectable()
 export class MbtilesService {

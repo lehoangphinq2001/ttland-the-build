@@ -1,31 +1,8 @@
 /* eslint-disable prettier/prettier */
 export const URL_SERVER = 'http://localhost:5000/api';
-export const URL_APITHONGTINLAND = 'http://45.119.85.149:4200';
-
-export const API_CONTROLLER_EDIT = 'http://localhost:5555/';
-
-export const URL_API_SMARTGIS = 'http://localhost:4000/v1';
-export const FILE_CREATE = 'file-upload/create-file';
-export const FILE_UPDATE = 'file-upload/update-file';
-
-export const STATISTICAL_DATE = [
-  { id: 0, name: 'Ngày hiện tại' },
-  { id: 1, name: 'Tuần hiện tại' },
-  { id: 2, name: 'Tháng hiện tại' },
-  { id: 3, name: 'Năm hiện tại' },
-  { id: 4, name: 'Từ ngày - đến ngày' },
-];
-
-export const STATUS_POST = [
-  { id: 0, name: 'Còn hiệu lực' },
-  { id: 1, name: 'Hết hiệu lực' },
-  { id: 2, name: 'Tham khảo(Đang cập nhật)' },
-  { id: 3, name: 'Chưa xác định' },
-];
 
 export const SAVE_FILE = {
-  DGN_FILE: 'E:/DATA_DGN_UPLOAD_TTLAND2526/',
-  // DGN_FILE: 'D:/DOCS_THONGTINLAND/',
+  DGN_FILE: '../DATA_BUILD/',
 };
 
 export const STATUS = {
@@ -33,33 +10,6 @@ export const STATUS = {
   INACTIVE: 'INACTIVE',
 };
 
-export const TYPE_FILE_SUPPORT_POST = {
-  0: 'raster',
-  1: 'vector',
-};
-
-export const min_size_config = {
-  '20': '0.0000020275',
-  '19': '0.0000040550',
-  '18': '0.0000081099',
-  '17': '0.0000162199',
-  '15': '0.0000648795',
-  '16': '0.0000324397',
-  '14': '0.0001297589',
-  '13': '0.0002595179',
-  '12': '0.0005190357',
-  '11': '0.0010380715',
-  '10': '0.0020761429',
-  '9': '0.0041522859',
-  '8': '0.0083045717',
-  '7': '0.0166091434',
-  '6': '0.0332182868',
-  '5': '0.0664365737',
-  '4': '0.1328731474',
-  '3': '0.2657462946',
-  '2': '0.5314925895',
-  '1': '1.0629851788',
-};
 
 export const MA_DAT = [
   {

@@ -16,6 +16,7 @@ import { CoordinatesModule } from './coordinates/coordinates.module';
 import { LocationNewModule } from './location-new/location-new.module';
 import { SecurityMiddleware } from './common/ip-block.middleware';
 import { LogIpMiddleware } from './common/log-ip.middleware';
+import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { LogIpMiddleware } from './common/log-ip.middleware';
     MbtilesModule,
     CoordinatesModule,
     LocationNewModule,
+    ControllerDgnModule,
   ],
   controllers: [AppController],
   providers: [AppService],
