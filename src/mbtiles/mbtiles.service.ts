@@ -27,11 +27,14 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   // ✅ Pool DB connections – mỗi file mbtiles chỉ mở 1 lần
-  private dbPool = new Map<string, {
-    db: Database.Database;
-    stmt: Database.Statement;
-    lastUsed: number;
-  }>();
+  private dbPool = new Map<
+    string,
+    {
+      db: Database.Database;
+      stmt: Database.Statement;
+      lastUsed: number;
+    }
+  >();
 
   onModuleInit() {
     // ✅ Dọn DB không dùng sau 10 phút
@@ -40,7 +43,9 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
 
   onModuleDestroy() {
     for (const { db } of this.dbPool.values()) {
-      try { db.close(); } catch {}
+      try {
+        db.close();
+      } catch {}
     }
     this.dbPool.clear();
   }
@@ -57,6 +62,8 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     }
 
     const mbtilesPath = path.resolve('../DATA_BUILD/', fullname);
+    console.log("mbtilesPathmbtilesPath", mbtilesPath);
+    
     const db = new Database(mbtilesPath, {
       readonly: true,
       fileMustExist: true,
@@ -64,7 +71,7 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
 
     // ✅ Tối ưu SQLite read performance
     db.pragma('journal_mode = WAL');
-    db.pragma('cache_size = -32000');   // 32MB per file
+    db.pragma('cache_size = -32000'); // 32MB per file
     db.pragma('mmap_size = 134217728'); // 128MB mmap
 
     const stmt = db.prepare(
@@ -80,13 +87,15 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     const threshold = Date.now() - 10 * 60 * 1000;
     for (const [key, { db, lastUsed }] of this.dbPool.entries()) {
       if (lastUsed < threshold) {
-        try { db.close(); } catch {}
+        try {
+          db.close();
+        } catch {}
         this.dbPool.delete(key);
       }
     }
   }
 
-  // ✅ Lấy tile raw – dùng pool, không mở/đóng DB mỗi lần
+  // ✅ Đảm bảo z/x/y là number trước khi tính toán
   getTileFromFile(
     fullname: string,
     z: number,
@@ -95,45 +104,65 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
   ): Buffer | null {
     try {
       const { stmt } = this.getDb(fullname);
-      const tmsY = (1 << z) - 1 - y;
-      const result = stmt.get(z, x, tmsY) as { tile_data: Buffer } | undefined;
+
+      // ✅ Ép kiểu tường minh phòng trường hợp vẫn nhận string
+      const zi = +z,
+        xi = +x,
+        yi = +y;
+      const tmsY = (1 << zi) - 1 - yi;
+
+      // this.logger.debug?.(`getTile ${fullname} z=${zi} x=${xi} tmsY=${tmsY}`);
+
+      const result = stmt.get(zi, xi, tmsY) as
+        | { tile_data: Buffer }
+        | undefined;
       return result?.tile_data ?? null;
     } catch (err) {
-      console.error(`[MbtilesService] getTileFromFile error ${fullname}:`, err.message);
+      console.error(
+        `[MbtilesService] getTileFromFile error ${fullname}:`,
+        err.message,
+      );
       return null;
     }
   }
 
-  // ✅ Resolve filename từ location – có Redis cache để tránh gọi lại
   async resolveFilename(
     z: number,
     x: number,
     y: number,
   ): Promise<string | null> {
-    const n = Math.pow(2, z);
-    const lon = (x / n) * 360.0 - 180.0;
-    const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n)));
+    // ✅ Ép kiểu tường minh
+    const zi = +z,
+      xi = +x,
+      yi = +y;
+
+    const n = Math.pow(2, zi);
+    const lon = (xi / n) * 360.0 - 180.0;
+    const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * yi) / n)));
     const lat = (lat_rad * 180.0) / Math.PI;
 
-    // ✅ Cache filename theo tọa độ (rounded để tránh quá nhiều key)
-    // Các tile lân cận thường thuộc cùng 1 tỉnh
     const latKey = lat.toFixed(2);
     const lonKey = lon.toFixed(2);
     const redisKey = `mbtiles:filename:${latKey}:${lonKey}`;
 
     const cached = await this.redis.get(redisKey);
-    if (cached) return cached === 'NULL' ? null : cached;
+    if (cached !== null) {
+      return cached === 'NULL' ? null : cached;
+    }
 
     const result = await this.checkDataInLocation(lat, lon);
-
     const filename = result?.success ? result?.data?.filename ?? null : null;
 
-    // ✅ Cache cả kết quả null để tránh gọi lại (TTL 1 giờ)
     await this.redis.set(redisKey, filename ?? 'NULL', 'EX', 3600);
+
+    console.log(
+      `[resolveFilename] lat=${lat.toFixed(4)} lon=${lon.toFixed(
+        4,
+      )} → ${filename}`,
+    );
 
     return filename;
   }
-
   async checkDataInLocation(lat: number, lng: number) {
     try {
       const infoLocation: any =

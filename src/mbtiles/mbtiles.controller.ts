@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import { Controller, Get, Param, Req, Res, Logger } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { MbtilesService } from './mbtiles.service';
@@ -5,13 +6,11 @@ import { ApiTags } from '@nestjs/swagger';
 import * as crypto from 'crypto';
 import * as NodeCache from 'node-cache';
 
-// ✅ Cache key bao gồm filename → tránh collision giữa các tỉnh
-// Layer 1: tile bytes (1000 tiles, TTL 5 phút)
 const tileCache = new NodeCache({ stdTTL: 300, maxKeys: 1000 });
-// Layer 2: filename resolution (5000 entries, TTL 1 giờ)
 const filenameCache = new NodeCache({ stdTTL: 3600, maxKeys: 5000 });
 
-const EMPTY_TILE = Buffer.from([0x1a, 0x00]);
+// Sentinel value để đánh dấu "đã kiểm tra, không có file"
+const NULL_SENTINEL = '__NULL__';
 
 @ApiTags('mbtiles')
 @Controller('mbtiles')
@@ -22,48 +21,72 @@ export class MbtilesController {
 
   @Get('line/:z/:x/:y')
   async getTile(
-    @Param('z') z: number,
-    @Param('x') x: number,
-    @Param('y') y: number,
+    @Param('z') z: string, // ✅ string, parseInt sau
+    @Param('x') x: string,
+    @Param('y') y: string,
     @Req() req: Request,
     @Res() res: Response,
   ) {
-    try {
-      // ── Step 1: Resolve filename (memory cache → Redis → DB lookup) ──
-      const fnCacheKey = `fn:${z}:${x}:${y}`;
-      let filename: string | null = filenameCache.get(fnCacheKey) ?? null;
+    // ✅ Parse sang number đúng chỗ
+    const zi = parseInt(z, 10);
+    const xi = parseInt(x, 10);
+    const yi = parseInt(y, 10);
 
-      if (filename === undefined || filename === null) {
-        // undefined = not in cache; null = cached as "no file"
-        filename = await this.mbtilesService.resolveFilename(z, x, y);
-        filenameCache.set(fnCacheKey, filename ?? '__NULL__');
-      } else if ((filename as any) === '__NULL__') {
-        filename = null;
+    // ✅ Validate params
+    if (isNaN(zi) || isNaN(xi) || isNaN(yi)) {
+      return res.status(400).send();
+    }
+
+    try {
+      // ── Step 1: Resolve filename ──────────────────────────────────────────
+      const fnCacheKey = `fn:${zi}:${xi}:${yi}`;
+
+      // ✅ Dùng has() để phân biệt "miss" vs "cached null"
+      let filename: string | null;
+
+      if (filenameCache.has(fnCacheKey)) {
+        const cached = filenameCache.get<string>(fnCacheKey);
+        filename = cached === NULL_SENTINEL ? null : cached ?? null;
+      } else {
+        filename = await this.mbtilesService.resolveFilename(zi, xi, yi);
+        filenameCache.set(fnCacheKey, filename ?? NULL_SENTINEL);
+
+        this.logger.debug(
+          `resolveFilename(${zi},${xi},${yi}) → ${filename ?? 'null'}`,
+        );
       }
 
       if (!filename) {
         return res.status(204).send();
       }
 
-      // ── Step 2: Get tile bytes (memory cache → SQLite pool) ──
-      // ✅ Cache key bao gồm filename để tránh collision
-      const tileCacheKey = `tile:${filename}:${z}:${x}:${y}`;
-      let tileBuffer: Buffer | null = tileCache.get(tileCacheKey) ?? null;
+      // ── Step 2: Get tile bytes ────────────────────────────────────────────
+      const tileCacheKey = `tile:${filename}:${zi}:${xi}:${yi}`;
+
+      let tileBuffer: Buffer | null = null;
+      let fromCache = false;
+
+      if (tileCache.has(tileCacheKey)) {
+        const cached = tileCache.get<Buffer | 'EMPTY'>(tileCacheKey);
+        if (cached === 'EMPTY') {
+          return res.status(204).send(); // ✅ Sentinel string thay Buffer
+        }
+        tileBuffer = cached ?? null;
+        fromCache = true;
+      }
 
       if (!tileBuffer) {
-        tileBuffer = this.mbtilesService.getTileFromFile(filename, z, x, y);
+        tileBuffer = this.mbtilesService.getTileFromFile(filename, zi, xi, yi);
 
         if (!tileBuffer) {
-          tileCache.set(tileCacheKey, EMPTY_TILE);
+          tileCache.set(tileCacheKey, 'EMPTY'); // ✅ String sentinel
           return res.status(204).send();
         }
 
         tileCache.set(tileCacheKey, tileBuffer);
-      } else if (tileBuffer === EMPTY_TILE) {
-        return res.status(204).send();
       }
 
-      // ── Step 3: ETag check ──
+      // ── Step 3: ETag ──────────────────────────────────────────────────────
       const etag = `"${crypto
         .createHash('md5')
         .update(tileBuffer)
@@ -74,18 +97,26 @@ export class MbtilesController {
         return res.status(304).send();
       }
 
-      // ── Step 4: Send ──
+      // ── Step 4: Detect compression ────────────────────────────────────────
+      // ✅ Tự detect tile có gzip hay không thay vì hardcode
+      const isGzip = tileBuffer[0] === 0x1f && tileBuffer[1] === 0x8b;
+
       res.setHeader('Content-Type', 'application/x-protobuf');
-      res.setHeader('Content-Encoding', 'gzip');
-      res.setHeader('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
+      if (isGzip) {
+        res.setHeader('Content-Encoding', 'gzip');
+      }
+      res.setHeader(
+        'Cache-Control',
+        'public, max-age=3600, stale-while-revalidate=86400',
+      );
       res.setHeader('ETag', etag);
       res.setHeader('Vary', 'Accept-Encoding');
       res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('X-Tile-Cache', fromCache ? 'HIT' : 'MISS'); // debug header
 
       return res.status(200).send(tileBuffer);
-
     } catch (error) {
-      this.logger.error(`Tile ${z}/${x}/${y}: ${error.message}`);
+      // this.logger.error(`Tile ${z}/${x}/${y}: ${error.message}`);
       return res.status(204).send();
     }
   }
