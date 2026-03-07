@@ -74,22 +74,54 @@ export class ControllerDgnService {
       throw new Error(`File không tồn tại: ${input}`);
     }
     return new Promise((resolve, reject) => {
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326', // WGS84
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10', // Min Zoom
+      //   '--maximum-zoom=18',
+
+      //   '--no-tile-compression',
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+
+      //   input,
+      // ];
+      
       const args = [
         '--force',
         '-o',
         output,
-        '--projection=EPSG:4326', // WGS84
+        '--projection=EPSG:4326',
         '--layer=thongtinland',
-        '--minimum-zoom=10', // Min Zoom
+        '--minimum-zoom=10',
         '--maximum-zoom=18',
 
-        '--no-tile-compression',
-        '--no-feature-limit',
-        '--no-tile-size-limit',
+        // ✅ BẬT nén gzip (mặc định của tippecanoe, giảm 60-70% dung lượng)
+        // Bỏ --no-tile-compression
 
+        // ✅ Simplify geometry theo từng zoom level
+        '--simplification=10', // zoom thấp: simplify mạnh
+        '--simplify-only-low-zooms', // zoom cao giữ nguyên chi tiết
+
+        // ✅ Tự động drop feature khi tile quá lớn thay vì reject
+        '--coalesce-densest-as-needed',
+        '--extend-zooms-if-still-dropping',
+
+        // ✅ Giới hạn tile size hợp lý (500KB) thay vì unlimited
+        '--maximum-tile-bytes=500000',
+
+        // ✅ Chỉ giữ properties cần thiết (thay YOUR_PROPS bằng tên thực)
+        // '--include=id,name,loaidat',
+
+        // ✅ Tăng performance conversion
+        '--read-parallel',
+
+        '--no-feature-limit',
         input,
       ];
-
       const proc = spawn('tippecanoe', args, {
         env: process.env,
       });

@@ -16,6 +16,7 @@ import { LocationNewModule } from './location-new/location-new.module';
 import { SecurityMiddleware } from './common/ip-block.middleware';
 import { LogIpMiddleware } from './common/log-ip.middleware';
 import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
+import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
     MbtilesModule,
     LocationNewModule,
     ControllerDgnModule,
+    FileLayerLineModule,
   ],
   controllers: [AppController],
   providers: [AppService],

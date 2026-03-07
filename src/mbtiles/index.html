@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Line Layer Viewer</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #0a0c0f;
+        --surface: #111418;
+        --border: #1e2530;
+        --accent: #00e5ff;
+        --accent2: #ff6b35;
+        --text: #e8edf2;
+        --muted: #4a5568;
+        --success: #00c896;
+        --warn: #ffb800;
+      }
+
+      body {
+        font-family: 'Syne', sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      /* ── Header ── */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+        z-index: 10;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .logo-icon {
+        width: 32px;
+        height: 32px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+      }
+
+      .logo-text {
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        color: var(--text);
+      }
+
+      .logo-text span {
+        color: var(--accent);
+      }
+
+      /* ── Layout ── */
+      .layout {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ── Sidebar ── */
+      .sidebar {
+        width: 300px;
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        overflow-y: auto;
+      }
+
+      .section {
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .section-title {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.15em;
+        color: var(--muted);
+        text-transform: uppercase;
+        margin-bottom: 12px;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+        font-family: 'JetBrains Mono', monospace;
+      }
+
+      input[type='text'],
+      input[type='number'],
+      select {
+        width: 100%;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        padding: 8px 10px;
+        margin-bottom: 10px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      input[type='text']:focus,
+      input[type='number']:focus,
+      select:focus {
+        border-color: var(--accent);
+      }
+
+      input[type='range'] {
+        width: 100%;
+        accent-color: var(--accent);
+        margin-bottom: 4px;
+      }
+
+      .range-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .range-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--accent);
+        min-width: 28px;
+        text-align: right;
+      }
+
+      /* Color picker */
+      .color-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      input[type='color'] {
+        width: 36px;
+        height: 36px;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: none;
+        cursor: pointer;
+        padding: 2px;
+      }
+
+      .color-hex {
+        flex: 1;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        color: var(--text);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        padding: 8px 10px;
+        outline: none;
+      }
+
+      .color-hex:focus {
+        border-color: var(--accent);
+      }
+
+      /* Buttons */
+      .btn {
+        width: 100%;
+        padding: 10px;
+        border-radius: 6px;
+        border: none;
+        font-family: 'Syne', sans-serif;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        letter-spacing: 0.05em;
+        transition: all 0.2s;
+        margin-bottom: 8px;
+      }
+
+      .btn-primary {
+        background: var(--accent);
+        color: #000;
+      }
+
+      .btn-primary:hover {
+        background: #33ecff;
+        transform: translateY(-1px);
+      }
+      .btn-primary:active {
+        transform: translateY(0);
+      }
+
+      .btn-secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .btn-secondary:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+
+      .btn-danger {
+        background: transparent;
+        color: #ff4d6d;
+        border: 1px solid #ff4d6d33;
+        font-size: 12px;
+        padding: 7px;
+      }
+
+      .btn-danger:hover {
+        background: #ff4d6d22;
+      }
+
+      /* Status badge */
+      .status-bar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: var(--bg);
+        border-radius: 6px;
+        margin-bottom: 8px;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+        flex-shrink: 0;
+      }
+
+      .dot.ok {
+        background: var(--success);
+        box-shadow: 0 0 6px var(--success);
+      }
+      .dot.loading {
+        background: var(--warn);
+        animation: pulse 1s infinite;
+      }
+      .dot.error {
+        background: #ff4d6d;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+
+      .status-text {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--muted);
+        flex: 1;
+      }
+
+      /* Stats */
+      .stat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      .stat-box {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 10px;
+        text-align: center;
+      }
+
+      .stat-val {
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--accent);
+      }
+
+      .stat-label {
+        font-size: 10px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+
+      /* Log */
+      .log-box {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 8px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        color: var(--muted);
+        max-height: 120px;
+        overflow-y: auto;
+        line-height: 1.7;
+      }
+
+      .log-box .log-line {
+        color: var(--muted);
+      }
+      .log-box .log-ok {
+        color: var(--success);
+      }
+      .log-box .log-err {
+        color: #ff4d6d;
+      }
+      .log-box .log-info {
+        color: var(--accent);
+      }
+
+      /* ── Map ── */
+      #map {
+        flex: 1;
+        position: relative;
+      }
+
+      /* Crosshair */
+      .crosshair {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 2;
+        opacity: 0.4;
+      }
+
+      .crosshair::before,
+      .crosshair::after {
+        content: '';
+        position: absolute;
+        background: var(--accent);
+      }
+
+      .crosshair::before {
+        width: 1px;
+        height: 16px;
+        top: -8px;
+        left: 0;
+      }
+
+      .crosshair::after {
+        width: 16px;
+        height: 1px;
+        left: -8px;
+        top: 0;
+      }
+
+      /* Coords overlay */
+      .coords-pill {
+        position: absolute;
+        bottom: 36px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--accent);
+        pointer-events: none;
+        z-index: 3;
+        white-space: nowrap;
+      }
+
+      /* Zoom badge */
+      .zoom-badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 13px;
+        color: var(--text);
+        z-index: 3;
+        pointer-events: none;
+      }
+
+      .zoom-badge span {
+        color: var(--accent);
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      /* Tile counter overlay */
+      .tile-overlay {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        color: var(--muted);
+        z-index: 3;
+        pointer-events: none;
+        line-height: 1.8;
+      }
+
+      .tile-overlay b {
+        color: var(--accent2);
+      }
+
+      /* MapLibre overrides */
+      .maplibregl-ctrl-bottom-right {
+        display: none;
+      }
+      .maplibregl-ctrl-bottom-left .maplibregl-ctrl-attrib {
+        display: none;
+      }
+
+      /* Scrollbar */
+      ::-webkit-scrollbar {
+        width: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">
+        <div class="logo-icon">⬡</div>
+        <div class="logo-text">VECTOR<span>TILE</span> INSPECTOR</div>
+      </div>
+      <div
+        style="
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 11px;
+          color: var(--muted);
+        "
+      >
+        MapLibre GL JS · MBTiles Line Layer
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- ── Sidebar ── -->
+      <div class="sidebar">
+        <!-- API Config -->
+        <div class="section">
+          <div class="section-title">⚡ API Endpoint</div>
+          <label>Tile URL Template</label>
+          <input
+            type="text"
+            id="tileUrl"
+            value="http://localhost:3333/v1/mbtiles/line/{z}/{x}/{y}"
+            placeholder="http://host/v1/mbtiles/line/{z}/{x}/{y}"
+          />
+
+          <label>Source Layer Name</label>
+          <input type="text" id="sourceLayer" value="thongtinland" />
+
+          <button class="btn btn-primary" onclick="applyLayer()">
+            ▶ LOAD LAYER
+          </button>
+          <button class="btn btn-secondary" onclick="removeLayer()">
+            ✕ Remove Layer
+          </button>
+        </div>
+
+        <!-- Style -->
+        <div class="section">
+          <div class="section-title">🎨 Line Style</div>
+
+          <label>Màu đường</label>
+          <div class="color-row">
+            <input
+              type="color"
+              id="lineColorPicker"
+              value="#00e5ff"
+              oninput="document.getElementById('lineColorHex').value=this.value; applyStyle()"
+            />
+            <input
+              type="text"
+              class="color-hex"
+              id="lineColorHex"
+              value="#00e5ff"
+              oninput="document.getElementById('lineColorPicker').value=this.value; applyStyle()"
+            />
+          </div>
+
+          <label>Độ dày (px)</label>
+          <input
+            type="range"
+            id="lineWidth"
+            min="0.5"
+            max="8"
+            step="0.5"
+            value="1.5"
+            oninput="document.getElementById('lineWidthVal').textContent=this.value; applyStyle()"
+          />
+          <div class="range-row">
+            <span style="font-size: 10px; color: var(--muted)"
+              >0.5 ──────── 8</span
+            >
+            <span class="range-val" id="lineWidthVal">1.5</span>
+          </div>
+
+          <label>Opacity</label>
+          <input
+            type="range"
+            id="lineOpacity"
+            min="0"
+            max="1"
+            step="0.05"
+            value="0.9"
+            oninput="document.getElementById('lineOpacityVal').textContent=this.value; applyStyle()"
+          />
+          <div class="range-row">
+            <span style="font-size: 10px; color: var(--muted)"
+              >0 ──────────── 1</span
+            >
+            <span class="range-val" id="lineOpacityVal">0.9</span>
+          </div>
+
+          <label>Blur</label>
+          <input
+            type="range"
+            id="lineBlur"
+            min="0"
+            max="4"
+            step="0.5"
+            value="0"
+            oninput="document.getElementById('lineBlurVal').textContent=this.value; applyStyle()"
+          />
+          <div class="range-row">
+            <span style="font-size: 10px; color: var(--muted)"
+              >0 ──────────── 4</span
+            >
+            <span class="range-val" id="lineBlurVal">0</span>
+          </div>
+
+          <label>Kiểu đường</label>
+          <select id="lineDasharray" onchange="applyStyle()">
+            <option value="solid">─────── Solid</option>
+            <option value="dash">- - - - Dashed</option>
+            <option value="dot">· · · · Dotted</option>
+            <option value="dashdot">─ · ─ · Dash-dot</option>
+          </select>
+        </div>
+
+        <!-- View -->
+        <div class="section">
+          <div class="section-title">🗺 Navigate</div>
+          <label>Fly to</label>
+          <select id="quickNav" onchange="flyToPreset(this.value)">
+            <option value="">-- Chọn vùng --</option>
+            <option value="10.045,105.748,13">Cần Thơ</option>
+            <option value="10.823,106.629,12">TP. Hồ Chí Minh</option>
+            <option value="21.028,105.834,12">Hà Nội</option>
+            <option value="16.047,108.206,12">Đà Nẵng</option>
+            <option value="10.357,107.084,12">Vũng Tàu</option>
+            <option value="15.880,108.335,12">Hội An</option>
+          </select>
+
+          <label>Min Zoom show layer</label>
+          <input
+            type="number"
+            id="minZoom"
+            value="10"
+            min="0"
+            max="22"
+            onchange="applyStyle()"
+          />
+        </div>
+
+        <!-- Status -->
+        <div class="section">
+          <div class="section-title">📡 Status</div>
+          <div class="status-bar">
+            <div class="dot" id="statusDot"></div>
+            <div class="status-text" id="statusText">Chưa load layer</div>
+          </div>
+          <div class="stat-grid">
+            <div class="stat-box">
+              <div class="stat-val" id="statTiles">0</div>
+              <div class="stat-label">Tiles loaded</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="statErrors">0</div>
+              <div class="stat-label" style="color: #ff4d6d88">Errors</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log -->
+        <div class="section" style="flex: 1">
+          <div
+            class="section-title"
+            style="display: flex; justify-content: space-between"
+          >
+            📋 Log
+            <span
+              onclick="clearLog()"
+              style="
+                cursor: pointer;
+                color: var(--muted);
+                font-size: 9px;
+                letter-spacing: normal;
+                text-transform: none;
+              "
+              >clear</span
+            >
+          </div>
+          <div class="log-box" id="logBox"></div>
+        </div>
+      </div>
+
+      <!-- ── Map ── -->
+      <div id="map">
+        <div class="crosshair"></div>
+        <div class="zoom-badge">Z <span id="zoomVal">13</span></div>
+        <div class="tile-overlay" id="tileOverlay">Chưa load layer</div>
+        <div class="coords-pill" id="coordsPill">10.0452, 105.7469</div>
+      </div>
+    </div>
+
+    <script>
+      // ── Map init ──────────────────────────────────────────────────────────────
+      const map = new maplibregl.Map({
+        container: 'map',
+        style: {
+          version: 8,
+          glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+          sources: {
+            osm: {
+              type: 'raster',
+              tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+              tileSize: 256,
+              attribution: '© OpenStreetMap',
+            },
+          },
+          layers: [
+            {
+              id: 'osm-tiles',
+              type: 'raster',
+              source: 'osm',
+              paint: {
+                'raster-opacity': 0.85,
+                'raster-saturation': -0.4,
+                'raster-brightness-min': 0.05,
+              },
+            },
+          ],
+        },
+        center: [105.748, 10.045],
+        zoom: 13,
+        maxZoom: 18,
+        transformRequest: (url, resourceType) => {
+          if (resourceType === 'Tile' && url.includes('/v1/mbtiles/line/')) {
+            return {
+              url,
+              method: 'GET',
+              headers: { Accept: 'application/x-protobuf' },
+            };
+          }
+        },
+      });
+
+      // ── State ──────────────────────────────────────────────────────────────────
+      let layerLoaded = false;
+      let tileCount = 0;
+      let errorCount = 0;
+
+      // ── Log ───────────────────────────────────────────────────────────────────
+      function log(msg, type = '') {
+        const box = document.getElementById('logBox');
+        const d = new Date();
+        const ts = `${d.getHours().toString().padStart(2, '0')}:${d
+          .getMinutes()
+          .toString()
+          .padStart(2, '0')}:${d.getSeconds().toString().padStart(2, '0')}`;
+        const line = document.createElement('div');
+        line.className = `log-line ${type ? 'log-' + type : ''}`;
+        line.textContent = `[${ts}] ${msg}`;
+        box.appendChild(line);
+        box.scrollTop = box.scrollHeight;
+        // keep max 100 lines
+        while (box.children.length > 100) box.removeChild(box.firstChild);
+      }
+
+      function clearLog() {
+        document.getElementById('logBox').innerHTML = '';
+      }
+
+      function setStatus(state, msg) {
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        dot.className = 'dot ' + state;
+        txt.textContent = msg;
+      }
+
+      // ── Helpers ───────────────────────────────────────────────────────────────
+      function getDasharray(type) {
+        switch (type) {
+          case 'dash':
+            return [6, 3];
+          case 'dot':
+            return [1, 3];
+          case 'dashdot':
+            return [6, 2, 1, 2];
+          default:
+            return undefined;
+        }
+      }
+
+      // ── Apply / remove layer ──────────────────────────────────────────────────
+      function removeLayer() {
+        if (map.getLayer('line-layer')) map.removeLayer('line-layer');
+        if (map.getSource('mbtiles-line')) map.removeSource('mbtiles-line');
+        layerLoaded = false;
+        tileCount = 0;
+        errorCount = 0;
+        updateStats();
+        setStatus('', 'Layer đã xoá');
+        document.getElementById('tileOverlay').textContent = 'Layer đã xoá';
+        log('Layer removed', 'info');
+      }
+
+      function applyLayer() {
+        const tileUrl = document.getElementById('tileUrl').value.trim();
+        if (!tileUrl) {
+          log('Thiếu Tile URL!', 'err');
+          return;
+        }
+
+        removeLayer();
+        setStatus('loading', 'Đang load...');
+        log(`Load: ${tileUrl}`, 'info');
+
+        tileCount = 0;
+        errorCount = 0;
+        updateStats();
+
+        map.addSource('mbtiles-line', {
+          type: 'vector',
+          tiles: [tileUrl],
+          minzoom: 0,
+          maxzoom: 18,
+        });
+
+        const color = document.getElementById('lineColorPicker').value;
+        const width = parseFloat(document.getElementById('lineWidth').value);
+        const opacity = parseFloat(
+          document.getElementById('lineOpacity').value,
+        );
+        const blur = parseFloat(document.getElementById('lineBlur').value);
+        const dash = getDasharray(
+          document.getElementById('lineDasharray').value,
+        );
+        const minZ = parseInt(document.getElementById('minZoom').value) || 10;
+        const sourceLayer =
+          document.getElementById('sourceLayer').value.trim() || 'thongtinland';
+
+        const paint = {
+          'line-color': color,
+          'line-width': width,
+          'line-opacity': opacity,
+          'line-blur': blur,
+        };
+        if (dash) paint['line-dasharray'] = dash;
+
+        map.addLayer({
+          id: 'line-layer',
+          type: 'line',
+          source: 'mbtiles-line',
+          'source-layer': sourceLayer,
+          minzoom: minZ,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint,
+        });
+
+        layerLoaded = true;
+
+        // Tile event tracking
+        map.on('data', (e) => {
+          if (
+            e.sourceId === 'mbtiles-line' &&
+            e.dataType === 'tile' &&
+            e.tile
+          ) {
+            tileCount++;
+            updateStats();
+            setStatus('ok', `Loaded ${tileCount} tiles`);
+            document.getElementById(
+              'tileOverlay',
+            ).innerHTML = `Source: <b>${sourceLayer}</b><br>Tiles: <b>${tileCount}</b> loaded`;
+          }
+        });
+
+        map.on('error', (e) => {
+          if (e.sourceId === 'mbtiles-line') {
+            errorCount++;
+            updateStats();
+            log(`Tile error: ${e.error?.message || 'unknown'}`, 'err');
+            setStatus('error', `Error (${errorCount})`);
+          }
+        });
+
+        log(`Layer added → source-layer: "${sourceLayer}"`, 'ok');
+        setStatus('loading', 'Waiting for tiles...');
+        document.getElementById(
+          'tileOverlay',
+        ).innerHTML = `Source: <b>${sourceLayer}</b><br>Đang load...`;
+      }
+
+      function applyStyle() {
+        if (!layerLoaded || !map.getLayer('line-layer')) return;
+
+        const color = document.getElementById('lineColorPicker').value;
+        const width = parseFloat(document.getElementById('lineWidth').value);
+        const opacity = parseFloat(
+          document.getElementById('lineOpacity').value,
+        );
+        const blur = parseFloat(document.getElementById('lineBlur').value);
+        const dash = getDasharray(
+          document.getElementById('lineDasharray').value,
+        );
+        const minZ = parseInt(document.getElementById('minZoom').value) || 10;
+
+        map.setPaintProperty('line-layer', 'line-color', color);
+        map.setPaintProperty('line-layer', 'line-width', width);
+        map.setPaintProperty('line-layer', 'line-opacity', opacity);
+        map.setPaintProperty('line-layer', 'line-blur', blur);
+
+        if (dash) {
+          map.setPaintProperty('line-layer', 'line-dasharray', dash);
+        } else {
+          map.setPaintProperty('line-layer', 'line-dasharray', null);
+        }
+
+        map.setLayerZoomRange('line-layer', minZ, 24);
+      }
+
+      function updateStats() {
+        document.getElementById('statTiles').textContent = tileCount;
+        document.getElementById('statErrors').textContent = errorCount;
+        if (errorCount > 0)
+          document.getElementById('statErrors').style.color = '#ff4d6d';
+      }
+
+      // ── Map events ────────────────────────────────────────────────────────────
+      map.on('zoom', () => {
+        document.getElementById('zoomVal').textContent = map
+          .getZoom()
+          .toFixed(1);
+      });
+
+      map.on('mousemove', (e) => {
+        const { lng, lat } = e.lngLat;
+        document.getElementById('coordsPill').textContent = `${lat.toFixed(
+          5,
+        )}, ${lng.toFixed(5)}`;
+      });
+
+      map.on('click', 'line-layer', (e) => {
+        const props = e.features?.[0]?.properties;
+        if (!props) return;
+        const html = Object.entries(props)
+          .map(([k, v]) => `<b>${k}</b>: ${v}`)
+          .join('<br>');
+        new maplibregl.Popup({ maxWidth: '300px' })
+          .setLngLat(e.lngLat)
+          .setHTML(
+            `<div style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:1.8">${html}</div>`,
+          )
+          .addTo(map);
+        log(`Click: ${JSON.stringify(props).slice(0, 80)}...`, 'info');
+      });
+
+      map.on('mouseenter', 'line-layer', () => {
+        map.getCanvas().style.cursor = 'crosshair';
+      });
+
+      map.on('mouseleave', 'line-layer', () => {
+        map.getCanvas().style.cursor = '';
+      });
+
+      // ── Fly to presets ────────────────────────────────────────────────────────
+      function flyToPreset(val) {
+        if (!val) return;
+        const [lat, lng, zoom] = val.split(',').map(Number);
+        map.flyTo({ center: [lng, lat], zoom, speed: 1.4, curve: 1.3 });
+        log(`Fly → ${val}`, 'info');
+        document.getElementById('quickNav').value = '';
+      }
+
+      // ── Init ──────────────────────────────────────────────────────────────────
+      map.on('load', () => {
+        log('Map ready', 'ok');
+        setStatus('', 'Map loaded – nhấn LOAD LAYER');
+      });
+    </script>
+  </body>
+</html>

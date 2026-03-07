@@ -8,18 +8,22 @@ import { HttpModule } from '@nestjs/axios';
 import { CommonService } from 'src/common/common.service';
 import { LocationNewService } from 'src/location-new/location-new.service';
 import { Redis } from 'ioredis';
+import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
+import { FileLayerLine } from 'src/entity/file-layer-line.entity';
 const HTTP_MAX_REDIRECTS = process.env.HTTP_MAX_REDIRECTS;
 const HTTP_TIMEOUT = process.env.HTTP_TIMEOUT;
 
 @Module({
   imports: [
-  HttpModule.registerAsync({
-    imports: [ConfigModule],
-    useFactory: async (configService: ConfigService) => ({
-      timeout: configService.get(HTTP_TIMEOUT),
-      maxRedirects: configService.get(HTTP_MAX_REDIRECTS),
-    }), inject: [ConfigService],
-  }),
+    TypeOrmModule.forFeature([FileLayerLine]),
+    HttpModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        timeout: configService.get(HTTP_TIMEOUT),
+        maxRedirects: configService.get(HTTP_MAX_REDIRECTS),
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [MbtilesController],
   exports: ['REDIS'],
@@ -34,6 +38,10 @@ const HTTP_TIMEOUT = process.env.HTTP_TIMEOUT;
         });
       },
     },
-    MbtilesService, CommonService]
+    LocationNewService,
+    FileLayerLineService,
+    MbtilesService,
+    CommonService,
+  ],
 })
-export class MbtilesModule { }
+export class MbtilesModule {}
