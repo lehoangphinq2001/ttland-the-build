@@ -50,10 +50,6 @@ export class MbtilesController {
       } else {
         filename = await this.mbtilesService.resolveFilename(zi, xi, yi);
         filenameCache.set(fnCacheKey, filename ?? NULL_SENTINEL);
-
-        this.logger.debug(
-          `resolveFilename(${zi},${xi},${yi}) → ${filename ?? 'null'}`,
-        );
       }
 
       if (!filename) {

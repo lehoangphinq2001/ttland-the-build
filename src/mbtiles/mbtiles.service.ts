@@ -10,8 +10,7 @@ import { HttpService } from '@nestjs/axios';
 import { Redis } from 'ioredis';
 
 // giữ import syntax
-import Database = require('better-sqlite3');
-
+import * as Database from 'better-sqlite3';
 import * as path from 'path';
 import { LocationNewService } from 'src/location-new/location-new.service';
 import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
@@ -62,10 +61,9 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     }
 
     const mbtilesPath = path.resolve('../DATA_BUILD/', fullname);
-    console.log("mbtilesPathmbtilesPath", mbtilesPath);
     
     const db = new Database(mbtilesPath, {
-      readonly: true,
+      // readonly: true,
       fileMustExist: true,
     });
 
@@ -111,17 +109,11 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
         yi = +y;
       const tmsY = (1 << zi) - 1 - yi;
 
-      // this.logger.debug?.(`getTile ${fullname} z=${zi} x=${xi} tmsY=${tmsY}`);
-
       const result = stmt.get(zi, xi, tmsY) as
         | { tile_data: Buffer }
         | undefined;
       return result?.tile_data ?? null;
     } catch (err) {
-      console.error(
-        `[MbtilesService] getTileFromFile error ${fullname}:`,
-        err.message,
-      );
       return null;
     }
   }
@@ -154,13 +146,6 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     const filename = result?.success ? result?.data?.filename ?? null : null;
 
     await this.redis.set(redisKey, filename ?? 'NULL', 'EX', 3600);
-
-    console.log(
-      `[resolveFilename] lat=${lat.toFixed(4)} lon=${lon.toFixed(
-        4,
-      )} → ${filename}`,
-    );
-
     return filename;
   }
   async checkDataInLocation(lat: number, lng: number) {
