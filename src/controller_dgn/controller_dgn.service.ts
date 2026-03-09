@@ -21,6 +21,7 @@ export class ControllerDgnService {
     private commonService: CommonService,
     private dataSource: DataSource, // private httpService: HttpService,
   ) {}
+
   async convertDBToMbtilesFile(createControllerDgnDto: CreateGeojsonFIleDto) {
     const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
       createControllerDgnDto;
@@ -89,21 +90,21 @@ export class ControllerDgnService {
 
       //   input,
       // ];
-      
+
       const args = [
         '--force',
         '-o',
         output,
         '--projection=EPSG:4326',
         '--layer=thongtinland',
-        '--minimum-zoom=10',
+        '--minimum-zoom=15',
         '--maximum-zoom=18',
 
         // ✅ BẬT nén gzip (mặc định của tippecanoe, giảm 60-70% dung lượng)
         // Bỏ --no-tile-compression
 
         // ✅ Simplify geometry theo từng zoom level
-        '--simplification=10', // zoom thấp: simplify mạnh
+        '--simplification=15', // zoom thấp: simplify mạnh
         '--simplify-only-low-zooms', // zoom cao giữ nguyên chi tiết
 
         // ✅ Tự động drop feature khi tile quá lớn thay vì reject
@@ -111,7 +112,7 @@ export class ControllerDgnService {
         '--extend-zooms-if-still-dropping',
 
         // ✅ Giới hạn tile size hợp lý (500KB) thay vì unlimited
-        '--maximum-tile-bytes=500000',
+        // '--maximum-tile-bytes=500000',
 
         // ✅ Chỉ giữ properties cần thiết (thay YOUR_PROPS bằng tên thực)
         // '--include=id,name,loaidat',
@@ -206,6 +207,51 @@ export class ControllerDgnService {
     } catch (error) {
       console.error(error);
       return null;
+    }
+  }
+
+  // =============================================
+  // =============================================
+  async runExportDataByProvinceNewId(provinceId: string) {
+    try {
+      // provinceNew
+      // Danh sách file hiện có
+      var rs = await this.repository.find({
+        select: { provinceNewId: true, wardNewId: true },
+        where: { provinceNewId: provinceId },
+      });
+
+      // Danh sách Xã/P thuộc province new id
+      var listWardAndYear = await this.dataSource.query(`
+        SELECT DISTINCT ON ("idxa") "idxa", "year"
+        FROM map_layers
+        WHERE "idtinh" = '${provinceId}'
+          AND ssn = true
+        ORDER BY "idxa", "year" DESC;`);
+
+      for (var i = 0; i < listWardAndYear.length; i++) {
+        console.log('Index: ', i);
+
+        var checkExit = rs.find((item: any) => {
+          item.wardNewId == listWardAndYear[i].idxa;
+        });
+        if (!checkExit) {
+          // Khởi tạo thông tin
+          var dataConvert = {
+            provinceNewId: provinceId,
+            wardNewId: listWardAndYear[i].idxa,
+            provinceId: null,
+            districtId: null,
+            wardId: null,
+            year: listWardAndYear[i].year,
+          };
+          await this.convertDBToMbtilesFile(dataConvert);
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      console.log('error: ', error.message);
+      return { success: false };
     }
   }
 }

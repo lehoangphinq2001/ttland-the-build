@@ -14,7 +14,7 @@ import { CreateGeojsonFIleDto } from './dto/create-file-json.dto';
 export class ControllerDgnController {
   constructor(private readonly controllerDgnService: ControllerDgnService) {}
 
-  @Post('export-geojson')
+  @Post('export-geojson') // export by wardId
   async exportGeojson(@Body() createControllerDgnDto: CreateGeojsonFIleDto) {
     return this.controllerDgnService.convertDBToMbtilesFile(
       createControllerDgnDto,
