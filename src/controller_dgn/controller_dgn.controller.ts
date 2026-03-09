@@ -20,4 +20,9 @@ export class ControllerDgnController {
       createControllerDgnDto,
     );
   }
+
+  @Post('export-muti/:provinceId') // export by wardId
+  async exportMutiFile(@Param('provinceId') provinceId: string) {
+    return this.controllerDgnService.runExportDataByProvinceNewId(provinceId);
+  }
 }
