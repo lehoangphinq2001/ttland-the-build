@@ -10,8 +10,9 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TilesService } from './tiles.service';
-
-@Controller()
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('tiles')
+@Controller('tiles')
 export class TilesController {
   private readonly logger = new Logger(TilesController.name);
 
