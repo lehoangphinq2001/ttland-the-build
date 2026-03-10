@@ -4,9 +4,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as bodyParser from 'body-parser';
+import {
+  FastifyAdapter,
+  NestFastifyApplication,
+} from '@nestjs/platform-fastify';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(
+    AppModule, 
+    { cors: true }, 
+  );
   const expressApp = app.getHttpAdapter().getInstance();
   expressApp.set('trust proxy', true); // cho phép đọc IP từ X-Forwarded-For
   

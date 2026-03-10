@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bản đồ MBTiles</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #0f172a;
+        color: #e2e8f0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* ── Topbar ── */
+      #topbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 18px;
+        background: #1e293b;
+        border-bottom: 1px solid #334155;
+        flex-shrink: 0;
+        z-index: 1000;
+      }
+      #topbar h1 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #f1f5f9;
+        letter-spacing: 0.02em;
+      }
+
+      .badge {
+        padding: 3px 10px;
+        border-radius: 99px;
+        font-size: 0.72rem;
+        font-weight: 500;
+      }
+      .badge-green {
+        background: #14532d;
+        color: #86efac;
+      }
+      .badge-blue {
+        background: #1e3a5f;
+        color: #93c5fd;
+      }
+      .badge-yellow {
+        background: #422006;
+        color: #fcd34d;
+      }
+      .badge-red {
+        background: #450a0a;
+        color: #fca5a5;
+      }
+
+      #coords {
+        margin-left: auto;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-variant-numeric: tabular-nums;
+        min-width: 220px;
+        text-align: right;
+      }
+
+      /* ── Layout ── */
+      #main {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+      #map {
+        flex: 1;
+        background: #1e293b;
+      }
+
+      /* ── Sidebar ── */
+      #sidebar {
+        width: 260px;
+        background: #1e293b;
+        border-left: 1px solid #334155;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .panel-section {
+        padding: 14px 16px;
+        border-bottom: 1px solid #2d3f55;
+      }
+      .panel-section h3 {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 10px;
+      }
+
+      /* Zoom */
+      .zoom-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .zoom-btn {
+        width: 30px;
+        height: 30px;
+        background: #334155;
+        border: 1px solid #475569;
+        border-radius: 6px;
+        color: #e2e8f0;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+        flex-shrink: 0;
+      }
+      .zoom-btn:hover {
+        background: #475569;
+      }
+      #zoom-display {
+        flex: 1;
+        text-align: center;
+        font-size: 0.85rem;
+        font-variant-numeric: tabular-nums;
+        color: #93c5fd;
+        font-weight: 600;
+      }
+
+      /* Slider */
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .slider-label {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        min-width: 56px;
+      }
+      input[type='range'] {
+        flex: 1;
+        accent-color: #3b82f6;
+        height: 4px;
+      }
+      #opacity-val {
+        font-size: 0.75rem;
+        color: #93c5fd;
+        min-width: 32px;
+        text-align: right;
+      }
+
+      /* Layer switcher */
+      .layer-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .layer-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        border: 1px solid transparent;
+        transition: all 0.15s;
+        font-size: 0.78rem;
+        color: #94a3b8;
+      }
+      .layer-item:hover {
+        background: #263548;
+        border-color: #334155;
+      }
+      .layer-item.active {
+        background: #1e3a5f;
+        border-color: #3b82f6;
+        color: #93c5fd;
+      }
+      .layer-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      /* Toggle MBTiles */
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+      }
+      .toggle-label {
+        font-size: 0.78rem;
+        color: #94a3b8;
+      }
+      .toggle-switch {
+        width: 36px;
+        height: 20px;
+        background: #334155;
+        border-radius: 10px;
+        cursor: pointer;
+        position: relative;
+        transition: background 0.2s;
+        border: none;
+        flex-shrink: 0;
+      }
+      .toggle-switch.on {
+        background: #3b82f6;
+      }
+      .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        background: white;
+        border-radius: 50%;
+        transition: left 0.2s;
+      }
+      .toggle-switch.on::after {
+        left: 18px;
+      }
+
+      /* Metadata */
+      .meta-row {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        margin-bottom: 6px;
+        gap: 6px;
+      }
+      .meta-key {
+        color: #64748b;
+        flex-shrink: 0;
+      }
+      .meta-value {
+        color: #cbd5e1;
+        text-align: right;
+        word-break: break-all;
+      }
+
+      /* Tile log */
+      #tile-log {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 16px;
+      }
+      #tile-log h3 {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 8px;
+      }
+      .log-entry {
+        font-size: 0.7rem;
+        font-family: monospace;
+        color: #94a3b8;
+        padding: 3px 0;
+        border-bottom: 1px solid #1e293b;
+        display: flex;
+        justify-content: space-between;
+      }
+      .log-ok {
+        color: #4ade80;
+      }
+      .log-slow {
+        color: #facc15;
+      }
+      .log-err {
+        color: #f87171;
+      }
+
+      /* Leaflet overrides */
+      .leaflet-control-attribution {
+        background: rgba(15, 23, 42, 0.85) !important;
+        color: #64748b !important;
+        font-size: 0.65rem !important;
+      }
+      .leaflet-control-attribution a {
+        color: #3b82f6 !important;
+      }
+      .leaflet-control-zoom {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="topbar">
+      <h1>🗺️ MBTiles Raster Viewer</h1>
+      <span class="badge badge-blue" id="zoom-badge">z=6</span>
+      <span class="badge badge-yellow" id="status-badge"
+        >⏳ Đang kết nối...</span
+      >
+      <span id="coords">—</span>
+    </div>
+
+    <div id="main">
+      <div id="map"></div>
+
+      <div id="sidebar">
+        <!-- Zoom + Opacity -->
+        <div class="panel-section">
+          <h3>Zoom</h3>
+          <div class="zoom-row">
+            <button class="zoom-btn" onclick="map.zoomOut()">−</button>
+            <div id="zoom-display">z = 6</div>
+            <button class="zoom-btn" onclick="map.zoomIn()">+</button>
+          </div>
+          <div class="slider-row">
+            <span class="slider-label">MBTiles</span>
+            <input
+              type="range"
+              id="opacity-slider"
+              min="0"
+              max="100"
+              value="100"
+              oninput="setOpacity(this.value)"
+            />
+            <span id="opacity-val">100%</span>
+          </div>
+        </div>
+
+        <!-- Lớp nền -->
+        <div class="panel-section">
+          <h3>Bản đồ nền</h3>
+          <div class="layer-list" id="base-layer-list">
+            <div
+              class="layer-item active"
+              data-layer="osm"
+              onclick="switchBase(this)"
+            >
+              <div class="layer-dot" style="background: #60a5fa"></div>
+              OpenStreetMap
+            </div>
+            <div
+              class="layer-item"
+              data-layer="satellite"
+              onclick="switchBase(this)"
+            >
+              <div class="layer-dot" style="background: #34d399"></div>
+              Google Satellite
+            </div>
+            <div
+              class="layer-item"
+              data-layer="street"
+              onclick="switchBase(this)"
+            >
+              <div class="layer-dot" style="background: #fb923c"></div>
+              Google Street
+            </div>
+            <div
+              class="layer-item"
+              data-layer="carto"
+              onclick="switchBase(this)"
+            >
+              <div class="layer-dot" style="background: #a78bfa"></div>
+              Carto Dark
+            </div>
+            <div
+              class="layer-item"
+              data-layer="none"
+              onclick="switchBase(this)"
+            >
+              <div class="layer-dot" style="background: #475569"></div>
+              Không có nền
+            </div>
+          </div>
+
+          <!-- Toggle MBTiles overlay -->
+          <div class="toggle-row">
+            <span class="toggle-label">Hiện lớp MBTiles</span>
+            <button
+              class="toggle-switch on"
+              id="mbtiles-toggle"
+              onclick="toggleMBTiles()"
+            ></button>
+          </div>
+        </div>
+
+        <!-- Metadata -->
+        <div class="panel-section">
+          <h3>Thông tin</h3>
+          <div class="meta-row">
+            <span class="meta-key">Server</span>
+            <span class="meta-value" id="meta-server">localhost:3333</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Tên bản đồ</span>
+            <span class="meta-value" id="meta-name">—</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Zoom range</span>
+            <span class="meta-value" id="meta-zoom">—</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Format</span>
+            <span class="meta-value" id="meta-format">—</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Tiles loaded</span>
+            <span class="meta-value" id="meta-tiles">0</span>
+          </div>
+          <div class="meta-row">
+            <span class="meta-key">Avg render</span>
+            <span class="meta-value" id="meta-avg">—</span>
+          </div>
+        </div>
+
+        <!-- Tile log -->
+        <div id="tile-log">
+          <h3>Tile Log</h3>
+          <div id="log-entries"></div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+      const SERVER = 'http://localhost:3333/v1';
+      const TILE_URL = `${SERVER}/load/{z}/{x}/{y}.png`;
+      const METADATA_URL = `${SERVER}/metadata`;
+
+      // ── Định nghĩa các base layer ──────────────────────────────
+      const BASE_LAYERS = {
+        osm: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution:
+            '© <a href="https://openstreetmap.org">OpenStreetMap</a>',
+        }),
+        satellite: L.tileLayer(
+          'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+          {
+            maxZoom: 22,
+            attribution: '© Google Satellite',
+          },
+        ),
+        street: L.tileLayer(
+          'https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}',
+          {
+            maxZoom: 22,
+            attribution: '© Google Maps',
+          },
+        ),
+        carto: L.tileLayer(
+          'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+          {
+            maxZoom: 20,
+            subdomains: 'abcd',
+            attribution: '© <a href="https://carto.com">Carto</a>',
+          },
+        ),
+        none: null,
+      };
+
+      // ── Khởi tạo map ──────────────────────────────────────────
+      const map = L.map('map', {
+        center: [16.0, 108.0],
+        zoom: 6,
+        zoomControl: false,
+        attributionControl: true,
+        layers: [BASE_LAYERS.osm], // OSM mặc định
+      });
+
+      // ── MBTiles overlay (render từ server) ────────────────────
+      const mbtilesLayer = L.tileLayer(TILE_URL, {
+        tileSize: 512,
+        zoomOffset: -1,
+        minZoom: 0,
+        maxZoom: 22,
+        crossOrigin: true,
+        keepBuffer: 4,
+        updateWhenIdle: false,
+        opacity: 1.0,
+        attribution: '© MBTiles Raster Server',
+      }).addTo(map);
+
+      let currentBaseKey = 'osm';
+      let mbtilesVisible = true;
+
+      // ── Chuyển bản đồ nền ────────────────────────────────────
+      function switchBase(el) {
+        const key = el.dataset.layer;
+        if (key === currentBaseKey) return;
+
+        // Xoá layer cũ
+        if (BASE_LAYERS[currentBaseKey]) {
+          map.removeLayer(BASE_LAYERS[currentBaseKey]);
+        }
+
+        // Thêm layer mới (nếu không phải "none")
+        if (BASE_LAYERS[key]) {
+          BASE_LAYERS[key].addTo(map);
+          // Đảm bảo base layer ở dưới MBTiles overlay
+          BASE_LAYERS[key].setZIndex(0);
+          if (mbtilesVisible) mbtilesLayer.setZIndex(1);
+        }
+
+        currentBaseKey = key;
+
+        // Cập nhật active state UI
+        document
+          .querySelectorAll('.layer-item')
+          .forEach((i) => i.classList.remove('active'));
+        el.classList.add('active');
+      }
+
+      // ── Toggle MBTiles layer ──────────────────────────────────
+      function toggleMBTiles() {
+        const btn = document.getElementById('mbtiles-toggle');
+        if (mbtilesVisible) {
+          map.removeLayer(mbtilesLayer);
+          btn.classList.remove('on');
+        } else {
+          mbtilesLayer.addTo(map);
+          btn.classList.add('on');
+        }
+        mbtilesVisible = !mbtilesVisible;
+      }
+
+      // ── Opacity ───────────────────────────────────────────────
+      function setOpacity(val) {
+        mbtilesLayer.setOpacity(val / 100);
+        document.getElementById('opacity-val').textContent = `${val}%`;
+      }
+
+      // ── Tracking tile load time ───────────────────────────────
+      let tileCount = 0;
+      const renderTimes = [];
+      const tileTimers = {};
+
+      mbtilesLayer.on('tileloadstart', (e) => {
+        tileTimers[e.tile.src] = performance.now();
+      });
+
+      mbtilesLayer.on('tileload', (e) => {
+        const t = tileTimers[e.tile.src];
+        if (!t) return;
+        const ms = Math.round(performance.now() - t);
+        delete tileTimers[e.tile.src];
+
+        tileCount++;
+        renderTimes.push(ms);
+        if (renderTimes.length > 200) renderTimes.shift();
+
+        const m = e.tile.src.match(/\/tiles\/(\d+)\/(\d+)\/(\d+)\.png/);
+        addLog(m ? `z${m[1]}/${m[2]}/${m[3]}` : '?', ms, false);
+        updateStats();
+      });
+
+      mbtilesLayer.on('tileerror', (e) => {
+        delete tileTimers[e.tile.src];
+        const m = e.tile.src.match(/\/tiles\/(\d+)\/(\d+)\/(\d+)\.png/);
+        addLog(m ? `z${m[1]}/${m[2]}/${m[3]}` : '?', null, true);
+      });
+
+      // ── Zoom badge ────────────────────────────────────────────
+      map.on('zoomend moveend', () => {
+        const z = map.getZoom();
+        document.getElementById('zoom-display').textContent = `z = ${z}`;
+        document.getElementById('zoom-badge').textContent = `z=${z}`;
+      });
+
+      // ── Tọa độ chuột ─────────────────────────────────────────
+      map.on('mousemove', (e) => {
+        document.getElementById('coords').textContent = `${e.latlng.lat.toFixed(
+          5,
+        )}°N  ${e.latlng.lng.toFixed(5)}°E`;
+      });
+
+      // ── Log & stats ───────────────────────────────────────────
+      function addLog(label, ms, isError) {
+        const c = document.getElementById('log-entries');
+        const d = document.createElement('div');
+        d.className = 'log-entry';
+        const cls = isError ? 'log-err' : ms > 300 ? 'log-slow' : 'log-ok';
+        const text = isError ? 'ERR' : `${ms}ms`;
+        d.innerHTML = `<span>${label}</span><span class="${cls}">${text}</span>`;
+        c.insertBefore(d, c.firstChild);
+        while (c.children.length > 50) c.removeChild(c.lastChild);
+      }
+
+      function updateStats() {
+        document.getElementById('meta-tiles').textContent = tileCount;
+        if (renderTimes.length > 0) {
+          const avg = Math.round(
+            renderTimes.reduce((a, b) => a + b, 0) / renderTimes.length,
+          );
+          document.getElementById('meta-avg').textContent = `${avg} ms`;
+        }
+      }
+
+      // ── Metadata ──────────────────────────────────────────────
+      async function loadMetadata() {
+        const statusEl = document.getElementById('status-badge');
+        try {
+          const res = await fetch(METADATA_URL);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+
+          document.getElementById('meta-name').textContent = data.name || '—';
+          document.getElementById(
+            'meta-zoom',
+          ).textContent = `${data.minzoom} – ${data.maxzoom}`;
+          document.getElementById('meta-format').textContent =
+            data.format || '—';
+
+          mbtilesLayer.options.minZoom = data.minzoom ?? 0;
+          mbtilesLayer.options.maxZoom = data.maxzoom ?? 22;
+
+          if (data.center) {
+            const [lng, lat, z] = data.center;
+            map.flyTo([lat, lng], z, { animate: true, duration: 1.2 });
+          } else if (data.bounds) {
+            const [w, s, e, n] = data.bounds;
+            map.flyToBounds(
+              [
+                [s, w],
+                [n, e],
+              ],
+              { animate: true, duration: 1.2 },
+            );
+          }
+
+          statusEl.textContent = '✅ Đã kết nối';
+          statusEl.className = 'badge badge-green';
+        } catch (err) {
+          statusEl.textContent = '❌ Không kết nối được';
+          statusEl.className = 'badge badge-red';
+          console.error('Metadata error:', err);
+        }
+      }
+
+      loadMetadata();
+    </script>
+  </body>
+</html>

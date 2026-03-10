@@ -17,6 +17,7 @@ import { SecurityMiddleware } from './common/ip-block.middleware';
 import { LogIpMiddleware } from './common/log-ip.middleware';
 import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
 import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
+import { TilesModule } from './tiles/tiles.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
     LocationNewModule,
     ControllerDgnModule,
     FileLayerLineModule,
+    TilesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

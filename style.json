@@ -1,0 +1,92 @@
+{
+  "version": 8,
+  "name": "thongtinland-transparent",
+  "sources": {
+    "vector_source": {
+      "type": "vector",
+      "tiles": ["mbtiles://load/{z}/{x}/{y}"],
+      "minzoom": 10,
+      "maxzoom": 18
+    }
+  },
+  "layers": [
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "rgba(0,0,0,0)",
+        "background-opacity": 0
+      }
+    },
+
+    {
+      "id": "thongtinland-fill",
+      "type": "fill",
+      "source": "vector_source",
+      "source-layer": "thongtinland",
+      "filter": ["==", ["geometry-type"], "Polygon"],
+      "paint": {
+        "fill-color": "rgba(0,0,0,0)",
+        "fill-opacity": 0
+      }
+    },
+
+    {
+      "id": "thongtinland-line",
+      "type": "line",
+      "source": "vector_source",
+      "source-layer": "thongtinland",
+      "filter": ["==", ["geometry-type"], "Polygon"],
+      "paint": {
+        "line-color": "#0f15bd",
+        // "line-width": [
+        //   "interpolate", ["linear"], ["zoom"],
+        //   10, 0.8,
+        //   14, 1.5,
+        //   18, 2.5
+        // ],
+        "line-width": 0.5,
+        "line-opacity": 1
+      }
+    },
+
+    {
+      "id": "thongtinland-linestring",
+      "type": "line",
+      "source": "vector_source",
+      "source-layer": "thongtinland",
+      "filter": ["==", ["geometry-type"], "LineString"],
+      "paint": {
+        "line-color": "#0f15bd",
+        // "line-width": [
+        //   "interpolate", ["linear"], ["zoom"],
+        //   10, 0.8,
+        //   14, 1.5,
+        //   18, 2.5
+        // ],
+        "line-width": 0.5,
+        "line-opacity": 1
+      }
+    },
+
+    {
+      "id": "thongtinland-point",
+      "type": "circle",
+      "source": "vector_source",
+      "source-layer": "thongtinland",
+      "filter": ["==", ["geometry-type"], "Point"],
+      "minzoom": 14,
+      "paint": {
+        "circle-color": "#0f15bd",
+        "circle-radius": [
+          "interpolate", ["linear"], ["zoom"],
+          14, 2,
+          18, 5
+        ],
+        "circle-opacity": 1,
+        "circle-stroke-width": 1,
+        "circle-stroke-color": "#ffffff"
+      }
+    }
+  ]
+}

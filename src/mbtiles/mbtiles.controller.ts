@@ -20,7 +20,7 @@ export class MbtilesController {
   constructor(private readonly mbtilesService: MbtilesService) {}
 
   @Get('line/:z/:x/:y')
-  async getTile(
+  async getLine(
     @Param('z') z: string, // ✅ string, parseInt sau
     @Param('x') x: string,
     @Param('y') y: string,
@@ -112,8 +112,37 @@ export class MbtilesController {
 
       return res.status(200).send(tileBuffer);
     } catch (error) {
-      // this.logger.error(`Tile ${z}/${x}/${y}: ${error.message}`);
+      this.logger.error(`Tile ${z}/${x}/${y}: ${error.message}`);
       return res.status(204).send();
     }
   }
+
+    // ===================================
+  // @Get('tiles/:z/:x/:y')
+  // async getTile(
+  //   @Param('z') z: number,
+  //   @Param('x') x: number,
+  //   @Param('y') y: number,
+  //   @Res() res: Response,
+  // ) {
+  //   try {
+  //     const tile = await this.mbtilesService.getTileGeoJsonConvert(z, x, y);
+  //     res.setHeader('Content-Type', 'application/x-protobuf');
+  //     // res.setHeader('Content-Encoding', 'gzip');
+  //     if (!tile) {
+  //       const EMPTY_TILE = Buffer.from([
+  //         0x1a,
+  //         0x00, // tile rỗng
+  //       ]);
+  //       return res.send(EMPTY_TILE);
+  //     }
+  //     return res.send(tile);
+  //   } catch (error) {
+  //     const EMPTY_TILE = Buffer.from([
+  //       0x1a,
+  //       0x00, // tile rỗng
+  //     ]);
+  //     return res.send(EMPTY_TILE);
+  //   }
+  // }
 }
