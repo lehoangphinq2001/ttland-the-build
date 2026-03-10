@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { TilesService, REDIS_CLIENT } from './tiles.service';
+import { TilesService } from './tiles.service';
 import { TilesController } from './tiles.controller';
 import { CacheModule } from '@nestjs/cache-manager';
 import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
@@ -31,7 +31,7 @@ import { Redis } from 'ioredis';
     }),
   ],
   controllers: [TilesController],
-  exports: ['REDIS'],
+  // exports: ['REDIS'],
   providers: [
     TilesService,
     LocationNewService,
@@ -44,16 +44,16 @@ import { Redis } from 'ioredis';
     //   useFactory: (redis: Redis) => redis,
     //   inject: [getRedisConnectionToken()], // resolves 'default_IORedisModuleConnectionToken'
     // },
-    {
-      provide: 'REDIS',
-      useFactory: () => {
-        return new Redis({
-          host: '127.0.0.1',
-          port: 6379,
-          maxRetriesPerRequest: 3,
-        });
-      },
-    },
+    // {
+    //   provide: 'REDIS',
+    //   useFactory: () => {
+    //     return new Redis({
+    //       host: '127.0.0.1',
+    //       port: 6379,
+    //       maxRetriesPerRequest: 3,
+    //     });
+    //   },
+    // },
   ],
 })
 export class TilesModule {}

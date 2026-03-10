@@ -67,10 +67,10 @@ export class TilesController {
   }
 
   // tiles.controller.ts
-  @Delete('cache')
-  async clearCache() {
-    return this.tilesService.clearAllCache();
-  }
+  // @Delete('cache')
+  // async clearCache() {
+  //   return this.tilesService.clearAllCache();
+  // }
 
   /** GET /tiles.json — TileJSON descriptor */
   // @Get('tiles.json')
