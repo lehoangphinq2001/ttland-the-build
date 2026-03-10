@@ -117,17 +117,23 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
+        // ✅ Giữ TOÀN BỘ features, không drop
         '--no-feature-limit',
-        '--no-tile-size-limit', 
+        '--no-tile-size-limit',
         '--no-clipping',
-        '--no-simplification-of-shared-boders',
+        '--no-simplification-of-shared-nodes', // ← đúng tên flag
 
+        // ✅ Simplify nhẹ chỉ ở zoom thấp
         '--simplification=4',
         '--simplify-only-low-zooms',
 
+        // ✅ Cải thiện đường ranh giới chung giữa các polygon
+        '--detect-shared-borders',
+
+        // ✅ Buffer rộng để line không bị cắt ở rìa tile
         '--buffer=8',
 
-        // Performance
+        // ✅ Performance
         '--read-parallel',
 
         input,
