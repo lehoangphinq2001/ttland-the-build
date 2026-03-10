@@ -585,4 +585,22 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       type: 'raster',
     };
   }
+
+  // ================================================
+  async clearAllCache(): Promise<{ tile: number; filename: number }> {
+    const [tileKeys, filenameKeys] = await Promise.all([
+      this.redis.keys('t:*'),
+      this.redis.keys('mbtiles:filename:*'),
+    ]);
+
+    await Promise.all([
+      tileKeys.length ? this.redis.del(...tileKeys) : Promise.resolve(),
+      filenameKeys.length ? this.redis.del(...filenameKeys) : Promise.resolve(),
+    ]);
+
+    this.logger.log(
+      `🗑️ Cache cleared: ${tileKeys.length} tiles, ${filenameKeys.length} filenames`,
+    );
+    return { tile: tileKeys.length, filename: filenameKeys.length };
+  }
 }

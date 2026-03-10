@@ -6,6 +6,7 @@ import {
   Req,
   ParseIntPipe,
   Logger,
+  Delete,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { TilesService } from './tiles.service';
@@ -38,7 +39,7 @@ export class TilesController {
         .set({
           'Content-Type': 'image/png',
           'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
-          'ETag': `"${z}-${x}-${y}-${png.length}"`,
+          ETag: `"${z}-${x}-${y}-${png.length}"`,
           'Access-Control-Allow-Origin': '*',
           'X-Render-Time': `${elapsed}ms`,
         })
@@ -63,6 +64,12 @@ export class TilesController {
     @Res() res: Response,
   ) {
     return this.getTile(z, x, y, req, res);
+  }
+
+  // tiles.controller.ts
+  @Delete('cache')
+  async clearCache() {
+    return this.tilesService.clearAllCache();
   }
 
   /** GET /tiles.json — TileJSON descriptor */

@@ -79,15 +79,32 @@ export class ControllerDgnService {
       //   '--force',
       //   '-o',
       //   output,
-      //   '--projection=EPSG:4326', // WGS84
+      //   '--projection=EPSG:4326',
       //   '--layer=thongtinland',
-      //   '--minimum-zoom=10', // Min Zoom
-      //   '--maximum-zoom=18',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
 
-      //   '--no-tile-compression',
+      //   // ✅ BẬT nén gzip (mặc định của tippecanoe, giảm 60-70% dung lượng)
+      //   // Bỏ --no-tile-compression
+
+      //   // ✅ Simplify geometry theo từng zoom level
+      //   '--simplification=10', // zoom thấp: simplify mạnh
+      //   '--simplify-only-low-zooms', // zoom cao giữ nguyên chi tiết
+
+      //   // ✅ Tự động drop feature khi tile quá lớn thay vì reject
+      //   // '--coalesce-densest-as-needed',
+      //   // '--extend-zooms-if-still-dropping',
+
+      //   // ✅ Giới hạn tile size hợp lý (5MB) thay vì unlimited
+      //   '--maximum-tile-bytes=5000000',
+
+      //   // ✅ Chỉ giữ properties cần thiết (thay YOUR_PROPS bằng tên thực)
+      //   // '--include=id,name,loaidat',
+
+      //   // ✅ Tăng performance conversion
+      //   '--read-parallel',
+
       //   '--no-feature-limit',
-      //   '--no-tile-size-limit',
-
       //   input,
       // ];
 
@@ -98,29 +115,21 @@ export class ControllerDgnService {
         '--projection=EPSG:4326',
         '--layer=thongtinland',
         '--minimum-zoom=10',
-        '--maximum-zoom=18',
-
-        // ✅ BẬT nén gzip (mặc định của tippecanoe, giảm 60-70% dung lượng)
-        // Bỏ --no-tile-compression
-
-        // ✅ Simplify geometry theo từng zoom level
-        '--simplification=10', // zoom thấp: simplify mạnh
-        '--simplify-only-low-zooms', // zoom cao giữ nguyên chi tiết
-
-        // ✅ Tự động drop feature khi tile quá lớn thay vì reject
-        '--coalesce-densest-as-needed',
-        '--extend-zooms-if-still-dropping',
-
-        // ✅ Giới hạn tile size hợp lý (500KB) thay vì unlimited
-        '--maximum-tile-bytes=500000',
-
-        // ✅ Chỉ giữ properties cần thiết (thay YOUR_PROPS bằng tên thực)
-        // '--include=id,name,loaidat',
-
-        // ✅ Tăng performance conversion
-        '--read-parallel',
+        '--maximum-zoom=20',
 
         '--no-feature-limit',
+        '--no-tile-size-limit', 
+        '--no-clipping',
+        '--no-simplification-of-shared-boders',
+
+        '--simplification=4',
+        '--simplify-only-low-zooms',
+
+        '--buffer=8',
+
+        // Performance
+        '--read-parallel',
+
         input,
       ];
       const proc = spawn('tippecanoe', args, {
