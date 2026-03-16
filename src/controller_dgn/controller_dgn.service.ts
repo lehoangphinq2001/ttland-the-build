@@ -45,6 +45,7 @@ export class ControllerDgnService {
       // dataLine.extension = path.parse(pathFile).ext;
       dataLine.fullname = pathFile;
     }
+
     await this.repository.save(dataLine);
 
     // B2: convert mbtiles
@@ -259,6 +260,49 @@ export class ControllerDgnService {
             districtId: null,
             wardId: null,
             year: listWardAndYear[i].year,
+          };
+          await this.convertDBToMbtilesFile(dataConvert);
+        }
+      }
+      return { success: true };
+    } catch (error) {
+      console.log('error: ', error.message);
+      return { success: false };
+    }
+  }
+
+  async runExportDataByProvinceOldId(provinceId: string) {
+    try {
+      // provinceNew
+      // Danh sách file hiện có
+      var rs = await this.repository.find({
+        select: { provinceId: true, wardId: true },
+        where: { provinceId: provinceId },
+      });
+
+      // Danh sách Xã/P thuộc province new id
+      var listDistrictAndYear = await this.dataSource.query(`
+        SELECT DISTINCT ON ("idhuyen") "idhuyen", "year"
+        FROM map_layers
+        WHERE "idtinh" = '${provinceId}'
+          AND (ssn = false OR ssn IS NULL)
+        ORDER BY "idhuyen", "year" DESC;`);
+
+      for (var i = 0; i < listDistrictAndYear.length; i++) {
+        console.log('Index: ', i);
+
+        var checkExit = rs.find((item: any) => {
+          item.wardNewId == listDistrictAndYear[i].idhuyen;
+        });
+        if (!checkExit) {
+          // Khởi tạo thông tin
+          var dataConvert = {
+            provinceNewId: null,
+            wardNewId: null,
+            provinceId: provinceId,
+            districtId: listDistrictAndYear[i].idhuyen,
+            wardId: listDistrictAndYear[i].idhuyen,
+            year: listDistrictAndYear[i].year,
           };
           await this.convertDBToMbtilesFile(dataConvert);
         }

@@ -21,8 +21,19 @@ export class ControllerDgnController {
     );
   }
 
-  @Post('export-muti/:provinceId') // export by wardId
-  async exportMutiFile(@Param('provinceId') provinceId: string) {
-    return this.controllerDgnService.runExportDataByProvinceNewId(provinceId);
+  @Post('export-muti/new/:provinceNewId') // export by wardId New
+  async exportMutiFileByProvinceNew(
+    @Param('provinceNewId') provinceNewId: string,
+  ) {
+    return this.controllerDgnService.runExportDataByProvinceNewId(
+      provinceNewId,
+    );
+  }
+
+  @Post('export-muti/old/:provinceOldId') // export by wardId Old
+  async exportMutiFile(@Param('provinceOldId') provinceOldId: string) {
+    return this.controllerDgnService.runExportDataByProvinceOldId(
+      provinceOldId,
+    );
   }
 }
