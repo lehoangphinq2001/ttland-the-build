@@ -22,11 +22,64 @@ export class ControllerDgnService {
     private dataSource: DataSource, // private httpService: HttpService,
   ) {}
 
-  async convertDBToMbtilesFile(createControllerDgnDto: CreateGeojsonFIleDto) {
+  async convertDBToMbtilesFileNew(
+    createControllerDgnDto: CreateGeojsonFIleDto,
+  ) {
     const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
       createControllerDgnDto;
     // B1: convert geojson
     var pathFile = await this.createFileGeoJson(createControllerDgnDto);
+
+    var dataLine = new FileLayerLine();
+    dataLine.accountId = 1;
+    dataLine.provinceNewId = provinceNewId;
+    dataLine.wardNewId = wardNewId;
+    dataLine.provinceId = provinceId;
+    dataLine.districtId = districtId;
+    dataLine.wardId = wardId;
+    dataLine.year = year;
+    dataLine.note = null;
+    dataLine.ssn = provinceId == null ? false : true;
+    if (pathFile) {
+      // dataLine.fullname = pathFile; // đường dẫn đầy đủ
+      // dataLine.filename = path.basename(pathFile); // chỉ tên file
+      dataLine.filename = path.parse(pathFile).name + '.mbtiles';
+      // dataLine.extension = path.parse(pathFile).ext;
+      dataLine.fullname = pathFile;
+    }
+
+    await this.repository.save(dataLine);
+
+    // B2: convert mbtiles
+    try {
+      if (!pathFile) return null;
+      const pathFolder = SAVE_FILE.DGN_FILE;
+      // đảm bảo folder tồn tại
+      await fsp.mkdir(pathFolder, { recursive: true });
+      // tên file không có extension
+      const fileName = path.parse(pathFile).name;
+      // output mbtiles
+      const output = path.join(pathFolder, `${fileName}.mbtiles`);
+      // gọi tippecanoe
+      const result = await this.convertGeoJsonToMbtilesUpdate(pathFile, output);
+      return result;
+    } catch (error) {
+      console.error('convert mbtiles error:', error);
+      return null;
+    }
+  }
+
+  async convertDBToMbtilesFile(createControllerDgnDto: CreateGeojsonFIleDto) {
+    const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+      createControllerDgnDto;
+    // B1: convert geojson
+    var pathFile = await this.createFileGeoJsonProvinceOld(
+      createControllerDgnDto,
+    );
+
+    if (pathFile == null) {
+      return null;
+    }
 
     var dataLine = new FileLayerLine();
     dataLine.accountId = 1;
@@ -201,6 +254,55 @@ export class ControllerDgnService {
         AND year= ${year}
         AND (ssn=false OR ssn IS NULL)
     `);
+
+      const features = rows.map((row) => row.feature);
+
+      const geojson = {
+        type: 'FeatureCollection',
+        features,
+      };
+
+      const folder = path.join(SAVE_FILE.DGN_FILE);
+
+      if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder, { recursive: true });
+      }
+
+      const filePath = path.join(folder, `${year}_${Date.now()}.geojson`);
+
+      fs.writeFileSync(filePath, JSON.stringify(geojson));
+
+      return filePath;
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
+  }
+
+  async createFileGeoJsonProvinceOld(
+    createControllerDgnDto: CreateGeojsonFIleDto,
+  ) {
+    try {
+      const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+        createControllerDgnDto;
+
+      const rows = await this.dataSource.query(`
+      SELECT json_build_object(
+        'type','Feature',
+        'id',id,
+        'geometry', ST_AsGeoJSON(geom)::json,
+        'properties', json_build_object('gid', id)
+      ) AS feature
+      FROM dgn_polygon_layers
+      WHERE idtinh= '${provinceId}'
+        AND idhuyen= '${districtId}'
+        AND year= ${year}
+        AND (ssn=false OR ssn IS NULL)
+    `);
+
+      if (rows.length == 0) {
+        return null;
+      }
 
       const features = rows.map((row) => row.feature);
 
