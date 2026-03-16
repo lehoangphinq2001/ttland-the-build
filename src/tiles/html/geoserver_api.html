@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>THONGTINLAND — Load Line</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+      :root {
+        --bg: #080c18;
+        --panel: #0f1623;
+        --border: #1a2740;
+        --accent: #00e5ff;
+        --green: #00ff9d;
+        --text: #dde6f0;
+        --muted: #4a6180;
+        --red: #ff4d4d;
+        --orange: #ff6b35;
+      }
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: 'Syne', sans-serif;
+        overflow: hidden;
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        flex-shrink: 0;
+        height: 52px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 20px;
+        z-index: 1000;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .hex {
+        width: 30px;
+        height: 30px;
+        background: conic-gradient(
+          from 0deg,
+          var(--accent),
+          var(--orange),
+          var(--accent)
+        );
+        clip-path: polygon(
+          50% 0%,
+          100% 25%,
+          100% 75%,
+          50% 100%,
+          0% 75%,
+          0% 25%
+        );
+        animation: rh 9s linear infinite;
+      }
+      @keyframes rh {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .bname {
+        font-size: 14px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+      .bname em {
+        color: var(--accent);
+        font-style: normal;
+      }
+      .badge {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(0, 229, 255, 0.06);
+        border: 1px solid rgba(0, 229, 255, 0.2);
+        border-radius: 20px;
+        padding: 4px 12px;
+        font-family: 'Space Mono', monospace;
+        font-size: 10px;
+        color: var(--accent);
+        letter-spacing: 0.06em;
+      }
+      .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--green);
+        box-shadow: 0 0 6px var(--green);
+        animation: bl 2s ease-in-out infinite;
+      }
+      @keyframes bl {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.2;
+        }
+      }
+
+      .toolbar {
+        flex-shrink: 0;
+        background: var(--panel);
+        border-bottom: 1px solid var(--border);
+        padding: 8px 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .lbl {
+        font-family: 'Space Mono', monospace;
+        font-size: 10px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        white-space: nowrap;
+      }
+      .sep {
+        width: 1px;
+        height: 22px;
+        background: var(--border);
+        margin: 0 2px;
+      }
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        padding: 5px 10px;
+        transition: border-color 0.2s;
+      }
+      .field:focus-within {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.08);
+      }
+      .field label {
+        font-family: 'Space Mono', monospace;
+        font-size: 10px;
+        color: var(--muted);
+        white-space: nowrap;
+      }
+      .field input[type='number'] {
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--accent);
+        font-family: 'Space Mono', monospace;
+        font-size: 13px;
+        font-weight: 700;
+        width: 55px;
+      }
+      .field input[type='number']::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+      }
+      .sel {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        color: var(--accent);
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        border-radius: 5px;
+        padding: 5px 8px;
+        outline: none;
+        cursor: pointer;
+      }
+      .btn {
+        border: none;
+        cursor: pointer;
+        border-radius: 5px;
+        font-family: 'Syne', sans-serif;
+        font-weight: 700;
+        font-size: 12px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        padding: 7px 16px;
+        transition: all 0.18s;
+      }
+      .bp {
+        background: linear-gradient(135deg, var(--accent), #0080a0);
+        color: #000;
+      }
+      .bp:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 14px rgba(0, 229, 255, 0.3);
+      }
+      .bp:active {
+        transform: translateY(0);
+      }
+      .bp:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .bg2 {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--muted);
+      }
+      .bg2:hover {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      .sw {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: 2px solid var(--border);
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: border-color 0.2s;
+      }
+      .sw:hover {
+        border-color: var(--accent);
+      }
+      input[type='color'] {
+        position: absolute;
+        width: 0;
+        height: 0;
+        opacity: 0;
+      }
+      input[type='range'] {
+        -webkit-appearance: none;
+        width: 75px;
+        height: 4px;
+        background: var(--border);
+        border-radius: 2px;
+        outline: none;
+      }
+      input[type='range']::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: var(--accent);
+        cursor: pointer;
+      }
+
+      #map {
+        flex: 1;
+        position: relative;
+      }
+      .leaflet-tile-pane {
+        filter: brightness(0.78) saturate(0.55) hue-rotate(195deg);
+      }
+      .leaflet-control-attribution {
+        background: rgba(8, 12, 24, 0.85) !important;
+        color: var(--muted) !important;
+        font-size: 10px !important;
+      }
+      .leaflet-control-attribution a {
+        color: var(--accent) !important;
+      }
+
+      .card {
+        position: absolute;
+        top: 14px;
+        right: 14px;
+        z-index: 800;
+        background: rgba(8, 12, 24, 0.94);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px 16px;
+        min-width: 215px;
+        backdrop-filter: blur(16px);
+        box-shadow: 0 8px 36px rgba(0, 0, 0, 0.55);
+      }
+      .ctitle {
+        font-family: 'Space Mono', monospace;
+        font-size: 9px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        margin-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 8px;
+      }
+      .cr {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: 7px;
+      }
+      .ck {
+        font-family: 'Space Mono', monospace;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .cv {
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .cv.ok {
+        color: var(--green);
+      }
+      .cv.err {
+        color: var(--red);
+      }
+
+      .bbar {
+        position: absolute;
+        bottom: 34px;
+        left: 14px;
+        z-index: 800;
+        background: rgba(8, 12, 24, 0.88);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 7px 12px;
+        font-family: 'Space Mono', monospace;
+        font-size: 10px;
+        color: var(--muted);
+        backdrop-filter: blur(10px);
+        line-height: 1.7;
+        max-width: 420px;
+      }
+      .bbar b {
+        color: var(--accent);
+        font-weight: 400;
+      }
+
+      .ov {
+        position: absolute;
+        inset: 0;
+        z-index: 900;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background: rgba(8, 12, 24, 0.65);
+        backdrop-filter: blur(6px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s;
+      }
+      .ov.on {
+        opacity: 1;
+        pointer-events: all;
+      }
+      .ring {
+        width: 42px;
+        height: 42px;
+        border: 3px solid var(--border);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: sp 0.7s linear infinite;
+      }
+      @keyframes sp {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .omsg {
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        color: var(--accent);
+        letter-spacing: 0.1em;
+      }
+
+      #toast {
+        position: fixed;
+        bottom: 22px;
+        left: 50%;
+        transform: translateX(-50%) translateY(50px);
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 9px 18px;
+        font-family: 'Space Mono', monospace;
+        font-size: 11px;
+        z-index: 2000;
+        pointer-events: none;
+        white-space: nowrap;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+      }
+      #toast.show {
+        transform: translateX(-50%) translateY(0);
+      }
+      #toast.ok {
+        border-color: var(--green);
+        color: var(--green);
+      }
+      #toast.err {
+        border-color: var(--red);
+        color: var(--red);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <div class="hex"></div>
+        <div class="bname">THONGTIN<em>LAND</em></div>
+      </div>
+      <div class="badge">
+        <div class="dot"></div>
+        NestJS API · localhost:3333
+      </div>
+    </header>
+
+    <div class="toolbar">
+      <span class="lbl">load-line</span>
+      <div class="sep"></div>
+      <div class="field">
+        <label>IDTINH</label>
+        <input type="number" id="idtinh" value="66" min="1" max="999" />
+      </div>
+      <button class="btn bp" id="btnLoad" onclick="loadLayer()">⟳ Load</button>
+      <button class="btn bg2" onclick="resetView()">⌖ Fit View</button>
+      <div class="sep"></div>
+      <span class="lbl" style="color: var(--accent)"
+        >API: localhost:3333/v1/geoserver/tile/{z}/{x}/{y}</span
+      >
+    </div>
+
+    <div id="map">
+      <div class="ov" id="ov">
+        <div class="ring"></div>
+        <div class="omsg" id="omsg">LOADING…</div>
+      </div>
+
+      <div class="card">
+        <div class="ctitle">// API Info</div>
+        <div class="cr">
+          <span class="ck">api</span><span class="cv">localhost:3333</span>
+        </div>
+        <div class="cr">
+          <span class="ck">endpoint</span
+          ><span class="cv">v1/geoserver/tile</span>
+        </div>
+        <div class="cr">
+          <span class="ck">idtinh</span><span class="cv" id="iId">66</span>
+        </div>
+        <div class="cr">
+          <span class="ck">status</span><span class="cv" id="iSt">—</span>
+        </div>
+        <div class="cr">
+          <span class="ck">load time</span><span class="cv" id="iTm">—</span>
+        </div>
+      </div>
+
+      <div class="bbar">
+        SRS: EPSG:4326 &nbsp;|&nbsp; BBOX: <b id="bboxTxt">—</b>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+      // ── CONFIG ──────────────────────────────────────────────
+      const API = 'http://localhost:3333/v1/geoserver';
+
+      // BBOX mặc định để fit view lúc load
+      const BBOX = {
+        minLat: 12.613214492797852,
+        minLng: 108.09060716629028,
+        maxLat: 12.621201038360596,
+        maxLng: 108.09885120391846,
+      };
+
+      let tileLayer = null;
+      let t0 = 0;
+
+      // ── Init map (EPSG:3857 — chuẩn cho L.tileLayer XYZ) ──
+      const map = L.map('map', { zoomControl: true });
+
+      // Basemap
+      L.tileLayer(
+        'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        {
+          attribution: '© OpenStreetMap © CARTO',
+          subdomains: 'abcd',
+          maxZoom: 20,
+        },
+      ).addTo(map);
+
+      map.on('moveend zoomend', () => {
+        const b = map.getBounds();
+        document.getElementById('bboxTxt').textContent =
+          b.getWest().toFixed(6) +
+          ', ' +
+          b.getSouth().toFixed(6) +
+          ', ' +
+          b.getEast().toFixed(6) +
+          ', ' +
+          b.getNorth().toFixed(6);
+      });
+
+      function resetView() {
+        map.fitBounds(
+          [
+            [BBOX.minLat, BBOX.minLng],
+            [BBOX.maxLat, BBOX.maxLng],
+          ],
+          { animate: true, padding: [24, 24] },
+        );
+      }
+
+      function loadLayer() {
+        const idtinh = document.getElementById('idtinh').value.trim();
+        if (!idtinh || isNaN(+idtinh)) {
+          toast('Nhập idtinh hợp lệ', 'err');
+          return;
+        }
+
+        setOv(true);
+        document.getElementById('btnLoad').disabled = true;
+        document.getElementById('iId').textContent = idtinh;
+        setSt('loading…', '');
+        t0 = performance.now();
+
+        if (tileLayer) {
+          map.removeLayer(tileLayer);
+          tileLayer = null;
+        }
+
+        // Gọi NestJS API — tile/{z}/{x}/{y}?idtinh=66
+        // NestJS tự tính BBOX từ x,y,z rồi proxy sang GeoServer
+        const tileUrl = `${API}/tile/{z}/{x}/{y}`;
+
+        tileLayer = L.tileLayer(tileUrl, {
+          tileSize: 256,
+          opacity: 1,
+          updateWhenIdle: false,
+          updateWhenZooming: false,
+          keepBuffer: 4,
+          attribution: 'NestJS → GeoServer',
+        });
+
+        let first = true;
+        tileLayer.on('tileload', function () {
+          if (!first) return;
+          first = false;
+          const ms = Math.round(performance.now() - t0);
+          setOv(false);
+          document.getElementById('btnLoad').disabled = false;
+          setSt('OK ✓  (' + ms + 'ms)', 'ok');
+          document.getElementById('iTm').textContent = ms + ' ms';
+          toast('idtinh=' + idtinh + ' · ' + ms + 'ms', 'ok');
+        });
+        tileLayer.on('tileerror', function () {
+          setOv(false);
+          document.getElementById('btnLoad').disabled = false;
+          setSt('ERROR ✗', 'err');
+          toast('Tile error — kiểm tra NestJS API', 'err');
+        });
+
+        tileLayer.addTo(map);
+      }
+
+      function setOv(on) {
+        document.getElementById('ov').classList.toggle('on', on);
+      }
+
+      function setSt(txt, cls) {
+        var el = document.getElementById('iSt');
+        el.textContent = txt;
+        el.className = 'cv' + (cls ? ' ' + cls : '');
+      }
+
+      var _tt;
+      function toast(msg, type) {
+        var el = document.getElementById('toast');
+        el.textContent = msg;
+        el.className = 'show ' + (type || '');
+        clearTimeout(_tt);
+        _tt = setTimeout(function () {
+          el.classList.remove('show');
+        }, 3200);
+      }
+
+      document
+        .getElementById('idtinh')
+        .addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') loadLayer();
+        });
+
+      window.addEventListener('load', function () {
+        resetView();
+        loadLayer();
+      });
+    </script>
+  </body>
+</html>
