@@ -162,6 +162,37 @@ export class ControllerDgnService {
       //   input,
       // ];
 
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326',
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
+
+      //   // ✅ Giữ TOÀN BỘ features, không drop
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+      //   '--no-clipping',
+      //   '--no-simplification-of-shared-nodes', // ← đúng tên flag
+
+      //   // ✅ Simplify nhẹ chỉ ở zoom thấp
+      //   '--simplification=4',
+      //   '--simplify-only-low-zooms',
+
+      //   // ✅ Cải thiện đường ranh giới chung giữa các polygon
+      //   '--detect-shared-borders',
+
+      //   // ✅ Buffer rộng để line không bị cắt ở rìa tile
+      //   '--buffer=8',
+
+      //   // ✅ Performance
+      //   '--read-parallel',
+
+      //   input,
+      // ];
+
       const args = [
         '--force',
         '-o',
@@ -171,25 +202,25 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
-        // ✅ Giữ TOÀN BỘ features, không drop
+        // ✅ Không bỏ feature nào dù tile quá lớn
         '--no-feature-limit',
         '--no-tile-size-limit',
-        '--no-clipping',
-        '--no-simplification-of-shared-nodes', // ← đúng tên flag
+
+        // ✅ Tự động tăng maxzoom nếu vẫn còn dropping
+        '--extend-zooms-if-still-dropping', // ← THIẾU trong code cũ!
+
+        // ✅ Buffer lớn hơn để line không bị cắt ở rìa tile
+        '--buffer=32', // tăng từ 8 → 32
+
+        // ✅ Giữ nguyên shared nodes (ranh giới chung giữa polygon)
+        '--no-simplification-of-shared-nodes',
+        '--detect-shared-borders',
 
         // ✅ Simplify nhẹ chỉ ở zoom thấp
         '--simplification=4',
         '--simplify-only-low-zooms',
 
-        // ✅ Cải thiện đường ranh giới chung giữa các polygon
-        '--detect-shared-borders',
-
-        // ✅ Buffer rộng để line không bị cắt ở rìa tile
-        '--buffer=8',
-
-        // ✅ Performance
         '--read-parallel',
-
         input,
       ];
       const proc = spawn('tippecanoe', args, {
@@ -378,7 +409,7 @@ export class ControllerDgnService {
       // provinceNew
       // Danh sách file hiện có
       var rs = await this.repository.find({
-        select: { provinceId: true, wardId: true },
+        select: { provinceId: true, districtId: true },
         where: { provinceId: provinceId },
       });
 
@@ -394,7 +425,7 @@ export class ControllerDgnService {
         console.log('Index: ', i);
 
         var checkExit = rs.find((item: any) => {
-          item.wardNewId == listDistrictAndYear[i].idhuyen;
+          item.districtId == listDistrictAndYear[i].idhuyen;
         });
         if (!checkExit) {
           // Khởi tạo thông tin

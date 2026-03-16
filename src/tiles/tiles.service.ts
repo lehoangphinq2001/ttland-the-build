@@ -14,6 +14,7 @@ import * as fs from 'fs';
 import { promisify } from 'util';
 import { LocationNewService } from 'src/location-new/location-new.service';
 import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
+import * as LRUCache from 'lru-cache'; // npm i lru-cache
 
 const gunzip = promisify(zlib.gunzip);
 
@@ -79,11 +80,15 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     clearInterval(this.dbCleanupInterval);
 
     this.rendererPool.forEach((r) => {
-      try { r.release(); } catch (_) {}
+      try {
+        r.release();
+      } catch (_) {}
     });
 
     for (const { db } of this.dbPool.values()) {
-      try { db.close(); } catch (_) {}
+      try {
+        db.close();
+      } catch (_) {}
     }
     this.dbPool.clear();
   }
@@ -173,7 +178,9 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     const threshold = Date.now() - 10 * 60 * 1000;
     for (const [key, { db, lastUsed }] of this.dbPool.entries()) {
       if (lastUsed < threshold) {
-        try { db.close(); } catch (_) {}
+        try {
+          db.close();
+        } catch (_) {}
         this.dbPool.delete(key);
       }
     }
@@ -217,20 +224,68 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
+  // async resolveFilename(
+  //   z: number,
+  //   x: number,
+  //   y: number,
+  // ): Promise<string | null> {
+  //   const zi = +z, xi = +x, yi = +y;
+
+  //   const n = Math.pow(2, zi);
+  //   const lon = (xi / n) * 360.0 - 180.0;
+  //   const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * yi) / n)));
+  //   const lat = (lat_rad * 180.0) / Math.PI;
+
+  //   const result = await this.checkDataInLocation(lat, lon);
+  //   return result?.success ? result?.data?.filename ?? null : null;
+  // }
+
+  // Trong class TilesService, thêm cache
+  private filenameCache = new LRUCache<string, string | null>({
+    max: 2000,
+    ttl: 1000 * 60 * 30, // 30 phút
+  });
+
+  // Thay thế resolveFilename cũ
   async resolveFilename(
     z: number,
     x: number,
     y: number,
   ): Promise<string | null> {
-    const zi = +z, xi = +x, yi = +y;
+    const cacheKey = `${z}/${x}/${y}`;
 
-    const n = Math.pow(2, zi);
-    const lon = (xi / n) * 360.0 - 180.0;
-    const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * yi) / n)));
-    const lat = (lat_rad * 180.0) / Math.PI;
+    // Check cache trước
+    if (this.filenameCache.has(cacheKey)) {
+      return this.filenameCache.get(cacheKey) ?? null;
+    }
 
-    const result = await this.checkDataInLocation(lat, lon);
-    return result?.success ? result?.data?.filename ?? null : null;
+    const n = Math.pow(2, z);
+
+    // Sample 5 điểm: center + 4 góc lệch vào trong ~15%
+    const sampleOffsets = [
+      [0.5, 0.5], // center
+      [0.15, 0.15], // top-left
+      [0.85, 0.15], // top-right
+      [0.15, 0.85], // bottom-left
+      [0.85, 0.85], // bottom-right
+    ];
+
+    for (const [dx, dy] of sampleOffsets) {
+      const lon = ((x + dx) / n) * 360.0 - 180.0;
+      const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * (y + dy)) / n)));
+      const lat = (lat_rad * 180.0) / Math.PI;
+
+      const result = await this.checkDataInLocation(lat, lon);
+      if (result?.success && result?.data?.filename) {
+        const filename = result.data.filename;
+        this.filenameCache.set(cacheKey, filename);
+        return filename;
+      }
+    }
+
+    // Không tìm thấy ở bất kỳ điểm nào
+    this.filenameCache.set(cacheKey, null);
+    return null;
   }
 
   private async checkDataInLocation(lat: number, lng: number) {
@@ -330,7 +385,11 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     const match = url.match(/fonts\/([^/]+)\/(\d+)-(\d+)\.pbf/);
     if (match) {
       const fontName = decodeURIComponent(match[1]);
-      const fontPath = path.join(fontsDir, fontName, `${match[2]}-${match[3]}.pbf`);
+      const fontPath = path.join(
+        fontsDir,
+        fontName,
+        `${match[2]}-${match[3]}.pbf`,
+      );
       if (fs.existsSync(fontPath)) {
         return callback(null, { data: fs.readFileSync(fontPath) });
       }
@@ -407,7 +466,9 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
         },
         (err: Error | null, pixels: Uint8Array) => {
           if (err) return reject(err);
-          resolve(Buffer.from(pixels.buffer, pixels.byteOffset, pixels.byteLength));
+          resolve(
+            Buffer.from(pixels.buffer, pixels.byteOffset, pixels.byteLength),
+          );
         },
       );
     });
