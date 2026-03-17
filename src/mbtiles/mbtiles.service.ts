@@ -62,7 +62,7 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     }
 
     const mbtilesPath = path.resolve('../DATA_BUILD/', fullname);
-    
+
     const db = new Database(mbtilesPath, {
       // readonly: true,
       fileMustExist: true,
@@ -155,19 +155,25 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
       const infoLocation: any =
         await this.locationNewService.getInfoLocationAll({ lat, lng });
 
+      console.log(infoLocation);
+        
       if (!infoLocation?.success) return { success: false, data: null };
 
       let result = await this.fileLayerLineService.getDataLayerInLocationNew(
         infoLocation.data.infoNew.provinceid,
         infoLocation.data.infoNew.wardid,
       );
+      console.log('1');
+      console.log(result);
 
       if (!result.success) {
         result = await this.fileLayerLineService.getDataLayerInLocationOld(
-          infoLocation.data.infoOld.provinceid,
-          infoLocation.data.infoOld.districtid,
+          infoLocation.data.infoOld?.provinceid,
+          infoLocation.data.infoOld?.districtid,
         );
       }
+      console.log('2');
+      console.log('resultresult', result);
 
       if (!result.success) return { success: false, data: null };
       return { success: true, data: result.data[0] };
@@ -178,7 +184,7 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
   // ======================================================
   // ======== FLOW CŨ
   // ======================================================
-    // Hàm chọn file dựa trên vị trí, rồi trả tile
+  // Hàm chọn file dựa trên vị trí, rồi trả tile
   async getTileGeoJsonConvert(
     z: number,
     x: number,
@@ -199,17 +205,14 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
       return null;
     }
   }
-    // Mở file và lấy tile theo z/x/y
+  // Mở file và lấy tile theo z/x/y
   async getTile(
     fullname: string,
     z: number,
     x: number,
     y: number,
   ): Promise<Buffer | null> {
-    const mbtilesPath = await path.resolve(
-      SAVE_FILE.DGN_FILE,
-      fullname,
-    );
+    const mbtilesPath = await path.resolve(SAVE_FILE.DGN_FILE, fullname);
     const db = new Database(mbtilesPath);
     try {
       const stmt = db.prepare(

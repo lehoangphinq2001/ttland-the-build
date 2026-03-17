@@ -277,7 +277,7 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
 
       const result = await this.checkDataInLocation(lat, lon);
       if (result?.success && result?.data?.filename) {
-        const filename = result.data.filename;
+        const filename = result?.data?.filename;
         this.filenameCache.set(cacheKey, filename);
         return filename;
       }

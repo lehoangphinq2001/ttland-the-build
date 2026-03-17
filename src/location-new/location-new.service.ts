@@ -72,8 +72,7 @@ export class LocationNewService {
       var rs = await this.dataSource.query(`
       SELECT 
           provinceid,
-          districtid,
-          name
+          districtid
       FROM load_districts
       WHERE ST_Contains(
           geom, 
