@@ -394,7 +394,7 @@ export class ControllerDgnService {
             wardId: null,
             year: listWardAndYear[i].year,
           };
-          await this.convertDBToMbtilesFile(dataConvert);
+          await this.convertDBToMbtilesFileNew(dataConvert);
         }
       }
       return { success: true };

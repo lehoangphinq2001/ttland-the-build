@@ -154,17 +154,12 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
     try {
       const infoLocation: any =
         await this.locationNewService.getInfoLocationAll({ lat, lng });
-
-      console.log(infoLocation);
-        
       if (!infoLocation?.success) return { success: false, data: null };
 
       let result = await this.fileLayerLineService.getDataLayerInLocationNew(
         infoLocation.data.infoNew.provinceid,
         infoLocation.data.infoNew.wardid,
       );
-      console.log('1');
-      console.log(result);
 
       if (!result.success) {
         result = await this.fileLayerLineService.getDataLayerInLocationOld(
@@ -172,9 +167,6 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
           infoLocation.data.infoOld?.districtid,
         );
       }
-      console.log('2');
-      console.log('resultresult', result);
-
       if (!result.success) return { success: false, data: null };
       return { success: true, data: result.data[0] };
     } catch (error) {

@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 /* eslint-disable no-var */
 import { Injectable } from '@nestjs/common';
 import { CreateFileLayerLineDto } from './dto/create-file-layer-line.dto';
@@ -6,6 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FileLayerLine } from 'src/entity/file-layer-line.entity';
 import { Repository } from 'typeorm';
 import { CommonService } from 'src/common/common.service';
+import { SAVE_FILE } from 'src/common/common.constant';
+import { unlink, rename } from 'node:fs/promises';
 
 @Injectable()
 export class FileLayerLineService {
@@ -30,8 +33,8 @@ export class FileLayerLineService {
   }
 
   async getDataLayerInLocationOld(provinceid: string, district: string) {
-    console.log("provinceid", provinceid);
-    console.log("district", district);
+    console.log('provinceid', provinceid);
+    console.log('district', district);
 
     var data = await this.repository.find({
       select: {
@@ -43,5 +46,28 @@ export class FileLayerLineService {
       order: { year: 'ASC' },
     });
     return this.commonService._checkArray(data);
+  }
+
+  // ===================================================
+  async deleteFile(id: number) {
+    try {
+      var data = await this.repository.findOne({
+        where: { id: id },
+      });
+
+      if (data) {
+        await this.repository.delete(id);
+
+        // remove geojson
+        await unlink(data.fullname);
+
+        // remove mbtiles
+        await unlink(SAVE_FILE.DGN_FILE + data.filename);
+      }
+      return { success: true };
+    } catch (error) {
+      console.log('error', error.message);
+      return { success: true };
+    }
   }
 }
