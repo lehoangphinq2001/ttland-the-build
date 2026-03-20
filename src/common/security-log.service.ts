@@ -8,13 +8,13 @@ export class SecurityLogService {
 
   async logAttackIp(ip: string, reason: string, path: string) {
     try {
-      await this.dataSource.query(
-        `
-        INSERT INTO blocked_ip_logs (ip, reason, path, source)
-        VALUES (@0, @1, @2, @3)
-        `,
-        [ip, reason, path, 'api-dgn'],
-      );
+      // await this.dataSource.query(
+      //   `
+      //   INSERT INTO blocked_ip_logs (ip, reason, path, source)
+      //   VALUES (@0, @1, @2, @3)
+      //   `,
+      //   [ip, reason, path, 'api-dgn'],
+      // );
     } catch (err) {
       // KHÔNG throw
       console.error('[SECURITY][LOG_FAIL]', err.message);

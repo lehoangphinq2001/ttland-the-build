@@ -403,7 +403,7 @@ export class ControllerDgnService {
       var listWardAndYear = await this.dataSource.query(`
         SELECT DISTINCT ON ("idxa") "idxa", "year"
         FROM map_layers
-        WHERE "idtinh" = '${provinceId}' and "idxa" = '24163'
+        WHERE "idtinh" = '${provinceId}'
           AND ssn = true
         ORDER BY "idxa", "year" DESC;`);
 

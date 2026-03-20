@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from 'express';
 export class LogIpMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const ip = (req.ip || '').replace('::ffff:', '');
-    
+
     console.log(`
 ===== REQUEST DEBUG =====
 IP: ${ip}

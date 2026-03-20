@@ -1,83 +1,4 @@
-// import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
-// import { Request, Response, NextFunction } from 'express';
-// import { blockedIps } from './blocked-ips';
-
-// @Injectable()
-// export class SecurityMiddleware implements NestMiddleware {
-//   private requestsPerIp = new Map<
-//     string,
-//     { count: number; timestamp: number }
-//   >();
-//   private readonly limit = 200; // số request tối đa
-//   private readonly windowMs = 60 * 1000; // 1 phút
-//   private readonly rateLimit = 220; // giới hạn chung cho API
-//   private readonly openRoutes = ['/v1/mbtiles/', '/api/health']; // ngoại lệ
-
-//   // Các pattern URL nguy hiểm cần chặn
-//   private readonly blockedPatterns: RegExp[] = [
-//     /\.env/i,
-//     /\.php/i,
-//     /proc\/self\/environ/i,
-//     /\/@fs\//i,
-//     /\.\.\//,
-//     /%2f/i, // path traversal
-//     /%252f/i, // encoded slash
-//     /\/root\//i,
-//     /\/app\//i,
-//   ]; // double encoded slash
-
-//   use(req: Request, res: Response, next: NextFunction) {
-//     const ip =
-//       (req.headers['x-forwarded-for'] as string) ||
-//       req.socket.remoteAddress ||
-//       '';
-
-//     // 🚫 Ngoại trừ route mbtiles/:z/:x/:y
-//     if (req.path.startsWith('/v1/mbtiles/')) {
-//       return next(); // bỏ qua middleware cho route này
-//     }
-
-//     // 2. Kiểm tra URL bất thường
-//     for (const pattern of this.blockedPatterns) {
-//       if (pattern.test(req.url)) {
-//         blockedIps.add(ip); // tự động thêm IP vào danh sách chặn
-//         throw new ForbiddenException('Access denied: Suspicious URL');
-//       }
-//     }
-
-//     // 1. Kiểm tra danh sách chặn
-//     if (blockedIps.has(ip)) {
-//       throw new ForbiddenException('Access denied');
-//     }
-
-//     // 3. Theo dõi số request để tự động chặn
-//     const now = Date.now();
-//     const record = this.requestsPerIp.get(ip);
-
-//     if (!record || now - record.timestamp > this.windowMs) {
-//       this.requestsPerIp.set(ip, { count: 1, timestamp: now });
-//     } else {
-//       record.count++;
-//       if (record.count > this.limit) {
-//         blockedIps.add(ip); // thêm vào danh sách chặn
-//         throw new ForbiddenException('Access denied: Too many requests');
-//       }
-//     }
-
-//     // 3. Rate limit cho API (ngoại trừ openRoutes)
-//     if (!this.openRoutes.includes(req.path)) {
-//       if (record && record.count > this.rateLimit) {
-//         res
-//           .status(429)
-//           .json({ message: 'Too many requests, please try again later.' });
-//         return;
-//       }
-//     }
-
-//     next();
-//   }
-// }
-
+/* eslint-disable prettier/prettier */
 import { Injectable, NestMiddleware, ForbiddenException } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { blockedIps } from './blocked-ips';
@@ -88,33 +9,35 @@ export class SecurityMiddleware implements NestMiddleware {
     string,
     { count: number; timestamp: number }
   >();
-  private readonly limit = 200;
+  private readonly limit = 1000;
   private readonly windowMs = 60 * 1000;
-  private readonly rateLimit = 220;
-  private readonly openRoutes = ['/v1/mbtiles/', '/api/health'];
+  private readonly rateLimit = 550;
+  private readonly openRoutes = ['/v1/mbtiles/', '/v1/tiles/'];
 
-  // Các pattern URL nguy hiểm cần chặn ngay
+  private readonly allowedDomains: string[] = [
+    'quyhoach.thongtin.land',
+    'dev3.thongtin.land',
+  ];
+
+  private readonly allowedDomainSuffix = '.thongtin.land';
+
+  private readonly mobileAppSecret: string =
+    process.env.MOBILE_APP_SECRET || 'your-secret-key-here';
+
   private readonly blockedPatterns: RegExp[] = [
-    // File nhạy cảm
     /\.env/i,
     /\.php/i,
     /\.aspx/i,
     /\.jsp/i,
     /\.html/i,
     /\.htm/i,
-
-    // Path traversal / encoded
     /\.\.\//,
     /%2f/i,
     /%252f/i,
-
-    // Thư mục nhạy cảm
     /\/@fs\//i,
     /\/root\//i,
     /\/app\//i,
     /\/config/i,
-
-    // Các endpoint thường bị scan
     /\/login/i,
     /\/register/i,
     /\/index/i,
@@ -125,18 +48,54 @@ export class SecurityMiddleware implements NestMiddleware {
     /proc\/self\/environ/i,
   ];
 
-  use(req: Request, res: Response, next: NextFunction) {
+  private extractHostname(url: string): string | null {
+    try {
+      return new URL(url).hostname;
+    } catch {
+      return null;
+    }
+  }
+
+  private isAllowedDomain(hostname: string): boolean {
+    if (this.allowedDomains.includes(hostname)) return true;
+    if (hostname.endsWith(this.allowedDomainSuffix)) return true;
+    return false;
+  }
+
+  private isAllowedMobileApp(req: Request): boolean {
+    const appSecret = req.headers['x-app-secret'] as string | undefined;
+    return appSecret === this.mobileAppSecret;
+  }
+
+  use(req: Request, res: Response, next: NextFunction): void {
     const ip =
       (req.headers['x-forwarded-for'] as string) ||
       req.socket.remoteAddress ||
       '';
 
-    // 🚫 Ngoại trừ route mbtiles/:z/:x/:y
-    if (req.path.startsWith('/v1/mbtiles/')) {
-      return next();
+    if (
+      req.path.startsWith('/v1/mbtiles/') ||
+      req.path.startsWith('/v1/tiles/')
+    ) {
+      next();
+      return;
     }
 
-    // 1. Chặn ngay nếu URL khớp pattern nguy hiểm
+    const origin = req.headers['origin'] as string | undefined;
+    const referer = req.headers['referer'] as string | undefined;
+    const sourceUrl = origin || referer;
+
+    if (sourceUrl) {
+      const hostname = this.extractHostname(sourceUrl);
+      if (!hostname || !this.isAllowedDomain(hostname)) {
+        throw new ForbiddenException('Access denied: Domain not allowed');
+      }
+    } else {
+      if (!this.isAllowedMobileApp(req)) {
+        throw new ForbiddenException('Access denied: Unauthorized client');
+      }
+    }
+
     for (const pattern of this.blockedPatterns) {
       if (pattern.test(req.url)) {
         blockedIps.add(ip);
@@ -144,12 +103,10 @@ export class SecurityMiddleware implements NestMiddleware {
       }
     }
 
-    // 2. Kiểm tra danh sách chặn IP
     if (blockedIps.has(ip)) {
       throw new ForbiddenException('Access denied');
     }
 
-    // 3. Theo dõi số request để tự động chặn
     const now = Date.now();
     const record = this.requestsPerIp.get(ip);
 
@@ -163,8 +120,7 @@ export class SecurityMiddleware implements NestMiddleware {
       }
     }
 
-    // 4. Rate limit cho API (ngoại trừ openRoutes)
-    if (!this.openRoutes.includes(req.path)) {
+    if (!this.openRoutes.some((route) => req.path.startsWith(route))) {
       if (record && record.count > this.rateLimit) {
         res
           .status(429)
