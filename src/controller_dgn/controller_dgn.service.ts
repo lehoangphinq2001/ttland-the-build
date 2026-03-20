@@ -193,6 +193,36 @@ export class ControllerDgnService {
       //   input,
       // ];
 
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326',
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
+
+      //   // ✅ Không bỏ feature nào dù tile quá lớn
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+
+      //   // ✅ Tự động tăng maxzoom nếu vẫn còn dropping
+      //   '--extend-zooms-if-still-dropping', // ← THIẾU trong code cũ!
+
+      //   // ✅ Buffer lớn hơn để line không bị cắt ở rìa tile
+      //   '--buffer=32', // tăng từ 8 → 32
+
+      //   // ✅ Giữ nguyên shared nodes (ranh giới chung giữa polygon)
+      //   '--no-simplification-of-shared-nodes',
+      //   '--detect-shared-borders',
+
+      //   // ✅ Simplify nhẹ chỉ ở zoom thấp
+      //   // '--simplification=4',
+      //   // '--simplify-only-low-zooms',
+
+      //   '--read-parallel',
+      //   input,
+      // ];
       const args = [
         '--force',
         '-o',
@@ -202,23 +232,22 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
-        // ✅ Không bỏ feature nào dù tile quá lớn
         '--no-feature-limit',
         '--no-tile-size-limit',
+        '--extend-zooms-if-still-dropping',
 
-        // ✅ Tự động tăng maxzoom nếu vẫn còn dropping
-        '--extend-zooms-if-still-dropping', // ← THIẾU trong code cũ!
+        '--buffer=64',
 
-        // ✅ Buffer lớn hơn để line không bị cắt ở rìa tile
-        '--buffer=32', // tăng từ 8 → 32
-
-        // ✅ Giữ nguyên shared nodes (ranh giới chung giữa polygon)
+        // ✅ Bảo vệ shared border nodes
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
-        // ✅ Simplify nhẹ chỉ ở zoom thấp
-        '--simplification=4',
-        '--simplify-only-low-zooms',
+        // ✅ THAY: dùng --simplification=0 ở high zoom, chỉ simplify cực nhẹ ở low zoom
+        '--simplification=0', // tolerance rất nhỏ, gần như không đổi hình
+        '--simplify-only-low-zooms', // chỉ áp dụng ở zoom < maxzoom - 4
+
+        // ✅ THÊM: bảo vệ đỉnh nhọn theo góc
+        '--preserve-input-order', // giữ thứ tự vertex gốc
 
         '--read-parallel',
         input,
@@ -374,7 +403,7 @@ export class ControllerDgnService {
       var listWardAndYear = await this.dataSource.query(`
         SELECT DISTINCT ON ("idxa") "idxa", "year"
         FROM map_layers
-        WHERE "idtinh" = '${provinceId}'
+        WHERE "idtinh" = '${provinceId}' and "idxa" = '24163'
           AND ssn = true
         ORDER BY "idxa", "year" DESC;`);
 
