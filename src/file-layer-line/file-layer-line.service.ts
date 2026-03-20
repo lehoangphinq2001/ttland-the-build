@@ -33,9 +33,6 @@ export class FileLayerLineService {
   }
 
   async getDataLayerInLocationOld(provinceid: string, district: string) {
-    console.log('provinceid', provinceid);
-    console.log('district', district);
-
     var data = await this.repository.find({
       select: {
         fullname: true,

@@ -243,7 +243,7 @@ export class ControllerDgnService {
         '--detect-shared-borders',
 
         // ✅ THAY: dùng --simplification=0 ở high zoom, chỉ simplify cực nhẹ ở low zoom
-        '--simplification=0', // tolerance rất nhỏ, gần như không đổi hình
+        '--simplification=1', // tolerance rất nhỏ, gần như không đổi hình
         '--simplify-only-low-zooms', // chỉ áp dụng ở zoom < maxzoom - 4
 
         // ✅ THÊM: bảo vệ đỉnh nhọn theo góc
