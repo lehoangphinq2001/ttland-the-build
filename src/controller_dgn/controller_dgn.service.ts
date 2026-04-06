@@ -11,6 +11,8 @@ import { FileLayerLine } from 'src/entity/file-layer-line.entity';
 import { execFile, spawn } from 'child_process';
 import * as fsp from 'fs/promises';
 import { InjectRepository } from '@nestjs/typeorm';
+import { ExportGeoLineByLocationDto } from './dto/form-export-by-location.dto';
+import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
 
 @Injectable()
 export class ControllerDgnService {
@@ -19,13 +21,16 @@ export class ControllerDgnService {
     private repository: Repository<FileLayerLine>,
 
     private commonService: CommonService,
+    private fileLayerLineService: FileLayerLineService,
+
+    
     private dataSource: DataSource, // private httpService: HttpService,
   ) {}
 
   async convertDBToMbtilesFileNew(
     createControllerDgnDto: CreateGeojsonFIleDto,
   ) {
-    const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+    const { districtId, provinceId, provinceNewId, wardNewId, year } =
       createControllerDgnDto;
     // B1: convert geojson
     var pathFile = await this.createFileGeoJson(createControllerDgnDto);
@@ -36,7 +41,7 @@ export class ControllerDgnService {
     dataLine.wardNewId = wardNewId;
     dataLine.provinceId = provinceId;
     dataLine.districtId = districtId;
-    dataLine.wardId = wardId;
+    dataLine.wardId = districtId;
     dataLine.year = year;
     dataLine.note = null;
     dataLine.ssn = provinceId == null ? false : true;
@@ -70,7 +75,7 @@ export class ControllerDgnService {
   }
 
   async convertDBToMbtilesFile(createControllerDgnDto: CreateGeojsonFIleDto) {
-    const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+    const { districtId, provinceId, provinceNewId, wardNewId, year } =
       createControllerDgnDto;
     // B1: convert geojson
     var pathFile = await this.createFileGeoJsonProvinceOld(
@@ -87,15 +92,12 @@ export class ControllerDgnService {
     dataLine.wardNewId = wardNewId;
     dataLine.provinceId = provinceId;
     dataLine.districtId = districtId;
-    dataLine.wardId = wardId;
+    dataLine.wardId = districtId;
     dataLine.year = year;
     dataLine.note = null;
     dataLine.ssn = provinceId == null ? false : true;
     if (pathFile) {
-      // dataLine.fullname = pathFile; // đường dẫn đầy đủ
-      // dataLine.filename = path.basename(pathFile); // chỉ tên file
       dataLine.filename = path.parse(pathFile).name + '.mbtiles';
-      // dataLine.extension = path.parse(pathFile).ext;
       dataLine.fullname = pathFile;
     }
 
@@ -129,100 +131,6 @@ export class ControllerDgnService {
       throw new Error(`File không tồn tại: ${input}`);
     }
     return new Promise((resolve, reject) => {
-      // const args = [
-      //   '--force',
-      //   '-o',
-      //   output,
-      //   '--projection=EPSG:4326',
-      //   '--layer=thongtinland',
-      //   '--minimum-zoom=10',
-      //   '--maximum-zoom=20',
-
-      //   // ✅ BẬT nén gzip (mặc định của tippecanoe, giảm 60-70% dung lượng)
-      //   // Bỏ --no-tile-compression
-
-      //   // ✅ Simplify geometry theo từng zoom level
-      //   '--simplification=10', // zoom thấp: simplify mạnh
-      //   '--simplify-only-low-zooms', // zoom cao giữ nguyên chi tiết
-
-      //   // ✅ Tự động drop feature khi tile quá lớn thay vì reject
-      //   // '--coalesce-densest-as-needed',
-      //   // '--extend-zooms-if-still-dropping',
-
-      //   // ✅ Giới hạn tile size hợp lý (5MB) thay vì unlimited
-      //   '--maximum-tile-bytes=5000000',
-
-      //   // ✅ Chỉ giữ properties cần thiết (thay YOUR_PROPS bằng tên thực)
-      //   // '--include=id,name,loaidat',
-
-      //   // ✅ Tăng performance conversion
-      //   '--read-parallel',
-
-      //   '--no-feature-limit',
-      //   input,
-      // ];
-
-      // const args = [
-      //   '--force',
-      //   '-o',
-      //   output,
-      //   '--projection=EPSG:4326',
-      //   '--layer=thongtinland',
-      //   '--minimum-zoom=10',
-      //   '--maximum-zoom=20',
-
-      //   // ✅ Giữ TOÀN BỘ features, không drop
-      //   '--no-feature-limit',
-      //   '--no-tile-size-limit',
-      //   '--no-clipping',
-      //   '--no-simplification-of-shared-nodes', // ← đúng tên flag
-
-      //   // ✅ Simplify nhẹ chỉ ở zoom thấp
-      //   '--simplification=4',
-      //   '--simplify-only-low-zooms',
-
-      //   // ✅ Cải thiện đường ranh giới chung giữa các polygon
-      //   '--detect-shared-borders',
-
-      //   // ✅ Buffer rộng để line không bị cắt ở rìa tile
-      //   '--buffer=8',
-
-      //   // ✅ Performance
-      //   '--read-parallel',
-
-      //   input,
-      // ];
-
-      // const args = [
-      //   '--force',
-      //   '-o',
-      //   output,
-      //   '--projection=EPSG:4326',
-      //   '--layer=thongtinland',
-      //   '--minimum-zoom=10',
-      //   '--maximum-zoom=20',
-
-      //   // ✅ Không bỏ feature nào dù tile quá lớn
-      //   '--no-feature-limit',
-      //   '--no-tile-size-limit',
-
-      //   // ✅ Tự động tăng maxzoom nếu vẫn còn dropping
-      //   '--extend-zooms-if-still-dropping', // ← THIẾU trong code cũ!
-
-      //   // ✅ Buffer lớn hơn để line không bị cắt ở rìa tile
-      //   '--buffer=32', // tăng từ 8 → 32
-
-      //   // ✅ Giữ nguyên shared nodes (ranh giới chung giữa polygon)
-      //   '--no-simplification-of-shared-nodes',
-      //   '--detect-shared-borders',
-
-      //   // ✅ Simplify nhẹ chỉ ở zoom thấp
-      //   // '--simplification=4',
-      //   // '--simplify-only-low-zooms',
-
-      //   '--read-parallel',
-      //   input,
-      // ];
       const args = [
         '--force',
         '-o',
@@ -298,7 +206,7 @@ export class ControllerDgnService {
 
   async createFileGeoJson(createControllerDgnDto: CreateGeojsonFIleDto) {
     try {
-      const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+      const { districtId, provinceId, provinceNewId, wardNewId, year } =
         createControllerDgnDto;
 
       const rows = await this.dataSource.query(`
@@ -343,7 +251,7 @@ export class ControllerDgnService {
     createControllerDgnDto: CreateGeojsonFIleDto,
   ) {
     try {
-      const { districtId, provinceId, provinceNewId, wardId, wardNewId, year } =
+      const { districtId, provinceId, provinceNewId, wardNewId, year } =
         createControllerDgnDto;
 
       const rows = await this.dataSource.query(`
@@ -420,8 +328,8 @@ export class ControllerDgnService {
             wardNewId: listWardAndYear[i].idxa,
             provinceId: null,
             districtId: null,
-            wardId: null,
             year: listWardAndYear[i].year,
+            ssn: null,
           };
           await this.convertDBToMbtilesFileNew(dataConvert);
         }
@@ -451,8 +359,6 @@ export class ControllerDgnService {
         ORDER BY "idhuyen", "year" DESC;`);
 
       for (var i = 0; i < listDistrictAndYear.length; i++) {
-        console.log('Index: ', i);
-
         var checkExit = rs.find((item: any) => {
           item.districtId == listDistrictAndYear[i].idhuyen;
         });
@@ -463,8 +369,8 @@ export class ControllerDgnService {
             wardNewId: null,
             provinceId: provinceId,
             districtId: listDistrictAndYear[i].idhuyen,
-            wardId: listDistrictAndYear[i].idhuyen,
             year: listDistrictAndYear[i].year,
+            ssn: null,
           };
           await this.convertDBToMbtilesFile(dataConvert);
         }
@@ -473,6 +379,51 @@ export class ControllerDgnService {
     } catch (error) {
       console.log('error: ', error.message);
       return { success: false };
+    }
+  }
+  // ************************************************
+  async createGeoLineByForm(dto: ExportGeoLineByLocationDto) {
+    const { districtId, provinceId, provinceNewId, wardNewId, ssn } = dto;
+
+    if (ssn == false) {
+      if (provinceId && districtId) {
+        // Xác định dữ liệu hiện có 
+        var rsFindOne = await this.repository.findOne({
+          where: { provinceId: provinceId, districtId: districtId },
+        });
+        if(rsFindOne){
+          // Xóa file và thông tin lưu 
+          await this.fileLayerLineService.deleteFile(rsFindOne.id);
+        }
+
+        // xác định lại year cao nhất
+        var topYear = await this.dataSource.query(
+          `
+            SELECT MAX(year) FROM map_layers
+            WHERE idtinh = $1 AND idhuyen = $2
+            `,
+          [provinceId, districtId],
+        );
+
+        // Export
+        // Khởi tạo thông tin
+          var dataConvert = {
+            provinceNewId: null,
+            wardNewId: null,
+            provinceId: provinceId,
+            districtId: districtId,
+            year: topYear[0]?.max,
+            ssn: null,
+          };
+          
+          await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
+      }
+    }else if(ssn == true){
+      if(provinceNewId && wardNewId){
+        return true;
+      }
+    }else{
+      return {success: false, message: 'Vui lòng truyền thông tin!'}
     }
   }
 }

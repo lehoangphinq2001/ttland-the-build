@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class CreateGeojsonFIleDto {
+export class ExportGeoLineByLocationDto {
   @ApiProperty()
   readonly provinceNewId: string;
 
@@ -12,9 +12,6 @@ export class CreateGeojsonFIleDto {
 
   @ApiProperty()
   readonly districtId: string;
-
-  @ApiProperty()
-  readonly year: number;
 
   @ApiProperty()
   readonly ssn: boolean;

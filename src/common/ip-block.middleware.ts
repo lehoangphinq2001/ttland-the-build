@@ -22,7 +22,7 @@ export class SecurityMiddleware implements NestMiddleware {
   private readonly allowedDomainSuffix = '.thongtin.land';
 
   private readonly mobileAppSecret: string =
-    process.env.MOBILE_APP_SECRET || 'your-secret-key-here';
+    process.env.MOBILE_APP_SECRET || 'ZKeFdxGjg4xamJuUnfQEQnAurUGhbj4fQeXjdM4txNWNDma3';
 
   private readonly blockedPatterns: RegExp[] = [
     /\.env/i,

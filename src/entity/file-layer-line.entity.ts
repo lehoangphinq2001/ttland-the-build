@@ -20,6 +20,9 @@ export class FileLayerLine {
   @Column({ length: 55, nullable: true })
   extension: string;
 
+  @Column({ length: 255, nullable: true })
+  sub_address: string;
+
   @Column({ length: 255 })
   fullname: string; //
 
@@ -54,6 +57,9 @@ export class FileLayerLine {
 
   @Column({ nullable: true })
   ssn: boolean;
+
+  @Column({ nullable: true, length: 15 })
+  status: string;
 
   @UpdateDateColumn()
   updated_at: Date;

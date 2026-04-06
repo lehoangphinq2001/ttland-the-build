@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ControllerDgnService } from './controller_dgn.service';
 import { CreateGeojsonFIleDto } from './dto/create-file-json.dto';
+import { ExportGeoLineByLocationDto } from './dto/form-export-by-location.dto';
 
 @Controller('controller-dgn')
 export class ControllerDgnController {
@@ -36,4 +37,12 @@ export class ControllerDgnController {
       provinceOldId,
     );
   }
+
+  @Post('export-geoline') // export by wardId Old
+  async exportGeoLineByLocation(@Body() dto: ExportGeoLineByLocationDto) {
+    return this.controllerDgnService.createGeoLineByForm(dto);
+  }
+
+  // =====================================================
+  // =====================================================
 }

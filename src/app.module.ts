@@ -61,18 +61,12 @@ import { GeoserverModule } from './geoserver/geoserver.module';
   controllers: [AppController],
   providers: [AppService],
 })
-// export class AppModule {}
+export class AppModule {}
 
 // export class AppModule implements NestModule {
 //   configure(consumer: MiddlewareConsumer) {
-//     consumer.apply(SecurityMiddleware).forRoutes('*'); // áp dụng cho tất cả routes
+//     consumer
+//       .apply(SecurityMiddleware)
+//       .forRoutes({ path: '*', method: RequestMethod.ALL }); // áp dụng cho tất cả routes
 //   }
 // }
-
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(SecurityMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL }); // áp dụng cho tất cả routes
-  }
-}
