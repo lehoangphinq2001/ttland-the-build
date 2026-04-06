@@ -13,6 +13,7 @@ import * as fsp from 'fs/promises';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ExportGeoLineByLocationDto } from './dto/form-export-by-location.dto';
 import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
+import { CREATE_SUCCESSFULLY } from 'src/common/common.message';
 
 @Injectable()
 export class ControllerDgnService {
@@ -23,7 +24,6 @@ export class ControllerDgnService {
     private commonService: CommonService,
     private fileLayerLineService: FileLayerLineService,
 
-    
     private dataSource: DataSource, // private httpService: HttpService,
   ) {}
 
@@ -387,12 +387,12 @@ export class ControllerDgnService {
 
     if (ssn == false) {
       if (provinceId && districtId) {
-        // Xác định dữ liệu hiện có 
+        // Xác định dữ liệu hiện có
         var rsFindOne = await this.repository.findOne({
           where: { provinceId: provinceId, districtId: districtId },
         });
-        if(rsFindOne){
-          // Xóa file và thông tin lưu 
+        if (rsFindOne) {
+          // Xóa file và thông tin lưu
           await this.fileLayerLineService.deleteFile(rsFindOne.id);
         }
 
@@ -407,23 +407,24 @@ export class ControllerDgnService {
 
         // Export
         // Khởi tạo thông tin
-          var dataConvert = {
-            provinceNewId: null,
-            wardNewId: null,
-            provinceId: provinceId,
-            districtId: districtId,
-            year: topYear[0]?.max,
-            ssn: null,
-          };
-          
-          await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
+        var dataConvert = {
+          provinceNewId: null,
+          wardNewId: null,
+          provinceId: provinceId,
+          districtId: districtId,
+          year: topYear[0]?.max,
+          ssn: null,
+        };
+
+        await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
+        return { success: true, message: CREATE_SUCCESSFULLY };
       }
-    }else if(ssn == true){
-      if(provinceNewId && wardNewId){
+    } else if (ssn == true) {
+      if (provinceNewId && wardNewId) {
         return true;
       }
-    }else{
-      return {success: false, message: 'Vui lòng truyền thông tin!'}
+    } else {
+      return { success: false, message: 'Vui lòng truyền thông tin!' };
     }
   }
 }
