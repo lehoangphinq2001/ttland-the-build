@@ -130,6 +130,11 @@ export class ControllerDgnService {
     if (!fs.existsSync(input)) {
       throw new Error(`File không tồn tại: ${input}`);
     }
+
+     // ✅ Clean trước
+    const cleanedInput = input.replace('.geojson', '_cleaned.geojson');
+    await this.cleanGeoJson(input, cleanedInput);
+
     return new Promise((resolve, reject) => {
       // const args = [
       //   '--force',
@@ -213,7 +218,7 @@ export class ControllerDgnService {
         // '--no-duplication', // tránh drop feature trùng
         // '--hilbert', // sắp xếp tốt hơn, ít drop hơn
 
-        input,
+       cleanedInput,  // ✅ dùng file đã clean
       ];
       const proc = spawn('tippecanoe', args, {
         env: process.env,
@@ -258,6 +263,61 @@ export class ControllerDgnService {
       });
     });
   }
+
+  // ****************************************************
+  async cleanGeoJson(inputPath: string, outputPath: string): Promise<void> {
+    const raw = fs.readFileSync(inputPath, 'utf-8');
+    const geojson = JSON.parse(raw);
+
+    let removed = 0;
+
+    const cleaned = geojson.features.filter((feature: any) => {
+      try {
+        const coords = this.extractCoords(feature.geometry);
+        for (const [lng, lat] of coords) {
+          // ✅ Lọc tọa độ ngoài bounds hoặc NaN
+          if (
+            !isFinite(lng) ||
+            !isFinite(lat) ||
+            lng < -180 ||
+            lng > 180 ||
+            lat < -90 ||
+            lat > 90 ||
+            (lng === 0 && lat === 0) // tọa độ null island
+          ) {
+            removed++;
+            return false;
+          }
+        }
+        return true;
+      } catch {
+        removed++;
+        return false;
+      }
+    });
+
+    console.log(
+      `[clean] Removed ${removed} bad features, kept ${cleaned.length}`,
+    );
+
+    fs.writeFileSync(
+      outputPath,
+      JSON.stringify({
+        type: 'FeatureCollection',
+        features: cleaned,
+      }),
+    );
+  }
+
+  extractCoords(geometry: any): [number, number][] {
+    if (!geometry) return [];
+    const flat = (arr: any[]): [number, number][] => {
+      if (typeof arr[0] === 'number') return [arr as [number, number]];
+      return arr.flatMap(flat);
+    };
+    return flat(geometry.coordinates);
+  }
+  // ****************************************************
 
   async createFileGeoJson(createControllerDgnDto: CreateGeojsonFIleDto) {
     try {
