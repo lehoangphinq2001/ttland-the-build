@@ -131,6 +131,36 @@ export class ControllerDgnService {
       throw new Error(`File không tồn tại: ${input}`);
     }
     return new Promise((resolve, reject) => {
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326',
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
+
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+      //   '--extend-zooms-if-still-dropping',
+
+      //   '--buffer=64',
+
+      //   // ✅ Bảo vệ shared border nodes
+      //   '--no-simplification-of-shared-nodes',
+      //   '--detect-shared-borders',
+
+      //   // ✅ THAY: dùng --simplification=0 ở high zoom, chỉ simplify cực nhẹ ở low zoom
+      //   '--simplification=1', // tolerance rất nhỏ, gần như không đổi hình
+      //   '--simplify-only-low-zooms', // chỉ áp dụng ở zoom < maxzoom - 4
+
+      //   // ✅ THÊM: bảo vệ đỉnh nhọn theo góc
+      //   '--preserve-input-order', // giữ thứ tự vertex gốc
+
+      //   '--read-parallel',
+      //   input,
+      // ];
+
       const args = [
         '--force',
         '-o',
@@ -140,22 +170,30 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
+        // ✅ Không giới hạn feature/tile size
         '--no-feature-limit',
         '--no-tile-size-limit',
         '--extend-zooms-if-still-dropping',
 
-        '--buffer=64',
+        // ✅ Buffer lớn hơn để tránh mất line tại border tile
+        '--buffer=128',
 
-        // ✅ Bảo vệ shared border nodes
+        // ✅ Bảo vệ shared border
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
-        // ✅ THAY: dùng --simplification=0 ở high zoom, chỉ simplify cực nhẹ ở low zoom
-        '--simplification=1', // tolerance rất nhỏ, gần như không đổi hình
-        '--simplify-only-low-zooms', // chỉ áp dụng ở zoom < maxzoom - 4
+        // ❌ BỎ: '--simplification=1' + '--simplify-only-low-zooms'
+        // Hai flag này kết hợp gây mất geometry ở zoom thấp
 
-        // ✅ THÊM: bảo vệ đỉnh nhọn theo góc
-        '--preserve-input-order', // giữ thứ tự vertex gốc
+        // ✅ THAY: tắt hoàn toàn simplification
+        '--simplification=0',
+
+        // ✅ Giữ tất cả features dù nhỏ
+        '--minimum-zoom=10',
+        '--no-clipping', // tránh clip polygon nhỏ
+
+        // ✅ Giữ thứ tự vertex
+        '--preserve-input-order',
 
         '--read-parallel',
         input,
