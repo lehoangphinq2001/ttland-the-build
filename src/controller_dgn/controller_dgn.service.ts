@@ -170,31 +170,18 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
-        // ✅ Không giới hạn feature/tile size
         '--no-feature-limit',
         '--no-tile-size-limit',
         '--extend-zooms-if-still-dropping',
 
-        // ✅ Buffer lớn hơn để tránh mất line tại border tile
-        '--buffer=128',
+        '--buffer=127', // ✅ max hợp lệ
 
-        // ✅ Bảo vệ shared border
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
-        // ❌ BỎ: '--simplification=1' + '--simplify-only-low-zooms'
-        // Hai flag này kết hợp gây mất geometry ở zoom thấp
+        '--simplification=0', // ✅ tắt simplification
 
-        // ✅ THAY: tắt hoàn toàn simplification
-        '--simplification=0',
-
-        // ✅ Giữ tất cả features dù nhỏ
-        '--minimum-zoom=10',
-        '--no-clipping', // tránh clip polygon nhỏ
-
-        // ✅ Giữ thứ tự vertex
         '--preserve-input-order',
-
         '--read-parallel',
         input,
       ];
