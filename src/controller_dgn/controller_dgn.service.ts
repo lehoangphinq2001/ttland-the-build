@@ -131,7 +131,7 @@ export class ControllerDgnService {
       throw new Error(`File không tồn tại: ${input}`);
     }
 
-     // ✅ Clean trước
+    // ✅ Clean trước
     const cleanedInput = input.replace('.geojson', '_cleaned.geojson');
     await this.cleanGeoJson(input, cleanedInput);
 
@@ -190,6 +190,37 @@ export class ControllerDgnService {
       //   '--read-parallel',
       //   input,
       // ];
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326',
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
+
+      //   '--no-tile-compression',
+
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+      //   '--extend-zooms-if-still-dropping',
+
+      //   // '--buffer=m',
+
+      //   // '--no-simplification-of-shared-nodes',
+      //   // '--detect-shared-borders',
+
+      //   // '--preserve-input-order',
+      //   // '--read-parallel',
+
+      //   // ✅ THÊM: giữ tất cả features ở mọi zoom
+      //   // '--no-tiny-polygon-reduction', // không loại polygon nhỏ
+      //   // '--no-duplication', // tránh drop feature trùng
+      //   // '--hilbert', // sắp xếp tốt hơn, ít drop hơn
+
+      //  cleanedInput,  // ✅ dùng file đã clean
+      // ];
+
       const args = [
         '--force',
         '-o',
@@ -199,27 +230,35 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
+        // ✅ Tile size
         '--no-tile-compression',
-
         '--no-feature-limit',
         '--no-tile-size-limit',
         '--extend-zooms-if-still-dropping',
 
-        // '--buffer=m',
+        // ✅ Buffer - giữ line ở rìa tile
+        '--buffer=80',
 
-        // '--no-simplification-of-shared-nodes',
-        // '--detect-shared-borders',
+        // ✅ Chống mất góc nhọn & shared border
+        '--no-simplification-of-shared-nodes',
+        '--detect-shared-borders',
 
-        // '--preserve-input-order',
-        // '--read-parallel',
+        // ✅ Simplification nhẹ nhất có thể
+        '--simplification=2',
 
-        // ✅ THÊM: giữ tất cả features ở mọi zoom
-        // '--no-tiny-polygon-reduction', // không loại polygon nhỏ
-        // '--no-duplication', // tránh drop feature trùng
-        // '--hilbert', // sắp xếp tốt hơn, ít drop hơn
+        // ✅ Giữ polygon nhỏ ở zoom cao
+        '--no-tiny-polygon-reduction',
 
-       cleanedInput,  // ✅ dùng file đã clean
+        // ✅ Giữ thứ tự vertex gốc (quan trọng cho góc nhọn)
+        '--preserve-input-order',
+
+        // ✅ Tăng tốc & giảm drop
+        '--hilbert',
+        '--read-parallel',
+
+        cleanedInput,
       ];
+      
       const proc = spawn('tippecanoe', args, {
         env: process.env,
       });
