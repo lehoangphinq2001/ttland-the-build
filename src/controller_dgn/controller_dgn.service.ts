@@ -194,22 +194,24 @@ export class ControllerDgnService {
         '--minimum-zoom=10',
         '--maximum-zoom=20',
 
+        '--no-tile-compression',
+
         '--no-feature-limit',
         '--no-tile-size-limit',
-        '--extend-zooms-if-still-dropping',
+        // '--extend-zooms-if-still-dropping',
 
-        '--buffer=127',
+        // '--buffer=m',
 
-        '--no-simplification-of-shared-nodes',
-        '--detect-shared-borders',
+        // '--no-simplification-of-shared-nodes',
+        // '--detect-shared-borders',
 
-        '--preserve-input-order',
-        '--read-parallel',
+        // '--preserve-input-order',
+        // '--read-parallel',
 
         // ✅ THÊM: giữ tất cả features ở mọi zoom
-        '--no-tiny-polygon-reduction', // không loại polygon nhỏ
-        '--no-duplication', // tránh drop feature trùng
-        '--hilbert', // sắp xếp tốt hơn, ít drop hơn
+        // '--no-tiny-polygon-reduction', // không loại polygon nhỏ
+        // '--no-duplication', // tránh drop feature trùng
+        // '--hilbert', // sắp xếp tốt hơn, ít drop hơn
 
         input,
       ];
