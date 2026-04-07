@@ -234,27 +234,27 @@ export class ControllerDgnService {
         '--no-tile-compression',
         '--no-feature-limit',
         '--no-tile-size-limit',
-        '--extend-zooms-if-still-dropping',
+        // '--extend-zooms-if-still-dropping',
 
         // ✅ Buffer - giữ line ở rìa tile
         // '--buffer=80',
 
         // ✅ Chống mất góc nhọn & shared border
-        '--no-simplification-of-shared-nodes',
-        '--detect-shared-borders',
+        // '--no-simplification-of-shared-nodes',
+        // '--detect-shared-borders',
 
-        // ✅ Simplification nhẹ nhất có thể
-        '--simplification=1',
+        // // ✅ Simplification nhẹ nhất có thể
+        // '--simplification=1',
 
-        // ✅ Giữ polygon nhỏ ở zoom cao
-        // '--no-tiny-polygon-reduction',
+        // // ✅ Giữ polygon nhỏ ở zoom cao
+        // // '--no-tiny-polygon-reduction',
 
-        // ✅ Giữ thứ tự vertex gốc (quan trọng cho góc nhọn)
-        '--preserve-input-order',
+        // // ✅ Giữ thứ tự vertex gốc (quan trọng cho góc nhọn)
+        // '--preserve-input-order',
 
-        // ✅ Tăng tốc & giảm drop
-        '--hilbert',
-        '--read-parallel',
+        // // ✅ Tăng tốc & giảm drop
+        // '--hilbert',
+        // '--read-parallel',
 
         cleanedInput,
       ];
