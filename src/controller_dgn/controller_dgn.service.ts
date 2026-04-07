@@ -161,6 +161,30 @@ export class ControllerDgnService {
       //   input,
       // ];
 
+      // const args = [
+      //   '--force',
+      //   '-o',
+      //   output,
+      //   '--projection=EPSG:4326',
+      //   '--layer=thongtinland',
+      //   '--minimum-zoom=10',
+      //   '--maximum-zoom=20',
+
+      //   '--no-feature-limit',
+      //   '--no-tile-size-limit',
+      //   '--extend-zooms-if-still-dropping',
+
+      //   '--buffer=127', // ✅ max hợp lệ
+
+      //   '--no-simplification-of-shared-nodes',
+      //   '--detect-shared-borders',
+
+      //   // '--simplification=0', // ✅ tắt simplification
+
+      //   '--preserve-input-order',
+      //   '--read-parallel',
+      //   input,
+      // ];
       const args = [
         '--force',
         '-o',
@@ -174,15 +198,19 @@ export class ControllerDgnService {
         '--no-tile-size-limit',
         '--extend-zooms-if-still-dropping',
 
-        '--buffer=127', // ✅ max hợp lệ
+        '--buffer=127',
 
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
-        // '--simplification=0', // ✅ tắt simplification
-
         '--preserve-input-order',
         '--read-parallel',
+
+        // ✅ THÊM: giữ tất cả features ở mọi zoom
+        '--no-tiny-polygon-reduction', // không loại polygon nhỏ
+        '--no-duplication', // tránh drop feature trùng
+        '--hilbert', // sắp xếp tốt hơn, ít drop hơn
+
         input,
       ];
       const proc = spawn('tippecanoe', args, {
