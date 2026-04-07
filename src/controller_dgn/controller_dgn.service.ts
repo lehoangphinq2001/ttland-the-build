@@ -179,7 +179,7 @@ export class ControllerDgnService {
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
-        '--simplification=0', // ✅ tắt simplification
+        // '--simplification=0', // ✅ tắt simplification
 
         '--preserve-input-order',
         '--read-parallel',
