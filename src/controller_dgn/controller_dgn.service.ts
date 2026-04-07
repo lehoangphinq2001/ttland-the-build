@@ -205,20 +205,20 @@ export class ControllerDgnService {
         '--no-tile-size-limit',
         '--extend-zooms-if-still-dropping',
 
-        '--buffer=127',
+        // '--buffer=m',
 
-        '--no-simplification-of-shared-nodes',
-        '--detect-shared-borders',
+        // '--no-simplification-of-shared-nodes',
+        // '--detect-shared-borders',
 
-        '--preserve-input-order',
-        '--read-parallel',
+        // '--preserve-input-order',
+        // '--read-parallel',
 
         // ✅ THÊM: giữ tất cả features ở mọi zoom
-        '--no-tiny-polygon-reduction', // không loại polygon nhỏ
-        '--no-duplication', // tránh drop feature trùng
-        '--hilbert', // sắp xếp tốt hơn, ít drop hơn
+        // '--no-tiny-polygon-reduction', // không loại polygon nhỏ
+        // '--no-duplication', // tránh drop feature trùng
+        // '--hilbert', // sắp xếp tốt hơn, ít drop hơn
 
-        cleanedInput,  // ✅ dùng file đã clean
+       cleanedInput,  // ✅ dùng file đã clean
       ];
       const proc = spawn('tippecanoe', args, {
         env: process.env,
