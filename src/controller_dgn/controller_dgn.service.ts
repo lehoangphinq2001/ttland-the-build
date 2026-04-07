@@ -237,17 +237,17 @@ export class ControllerDgnService {
         '--extend-zooms-if-still-dropping',
 
         // ✅ Buffer - giữ line ở rìa tile
-        '--buffer=80',
+        // '--buffer=80',
 
         // ✅ Chống mất góc nhọn & shared border
         '--no-simplification-of-shared-nodes',
         '--detect-shared-borders',
 
         // ✅ Simplification nhẹ nhất có thể
-        '--simplification=2',
+        '--simplification=1',
 
         // ✅ Giữ polygon nhỏ ở zoom cao
-        '--no-tiny-polygon-reduction',
+        // '--no-tiny-polygon-reduction',
 
         // ✅ Giữ thứ tự vertex gốc (quan trọng cho góc nhọn)
         '--preserve-input-order',
@@ -258,7 +258,7 @@ export class ControllerDgnService {
 
         cleanedInput,
       ];
-      
+
       const proc = spawn('tippecanoe', args, {
         env: process.env,
       });
