@@ -38,7 +38,7 @@
       "source-layer": "thongtinland",
       "filter": ["==", ["geometry-type"], "Polygon"],
       "paint": {
-        "line-color": "#0f15bd",
+        "line-color": "#020ad9",
         "line-width": 1.5,
         "line-opacity": 1
       }
@@ -51,7 +51,7 @@
       "source-layer": "thongtinland",
       "filter": ["==", ["geometry-type"], "LineString"],
       "paint": {
-        "line-color": "#0f15bd",
+        "line-color": "#020ad9",
         "line-width": 1.5,
         "line-opacity": 1
       }
@@ -65,7 +65,7 @@
       "filter": ["==", ["geometry-type"], "Point"],
       "minzoom": 14,
       "paint": {
-        "circle-color": "#0f15bd",
+        "circle-color": "#020ad9",
         "circle-radius": [
           "interpolate", ["linear"], ["zoom"],
           14, 2,
