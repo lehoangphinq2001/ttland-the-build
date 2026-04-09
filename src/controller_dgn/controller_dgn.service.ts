@@ -136,7 +136,6 @@ export class ControllerDgnService {
     await this.cleanGeoJson(input, cleanedInput);
 
     return new Promise((resolve, reject) => {
-
       const args = [
         '--force',
         '-o',
@@ -477,7 +476,7 @@ export class ControllerDgnService {
 
         // Export
         // Khởi tạo thông tin
-        var dataConvert = {
+        var dataConvert: any = {
           provinceNewId: null,
           wardNewId: null,
           provinceId: provinceId,
@@ -491,7 +490,37 @@ export class ControllerDgnService {
       }
     } else if (ssn == true) {
       if (provinceNewId && wardNewId) {
-        return true;
+        // Xác định dữ liệu hiện có
+        var rsFindOne = await this.repository.findOne({
+          where: { provinceNewId: provinceNewId, wardNewId: wardNewId },
+        });
+        if (rsFindOne) {
+          // Xóa file và thông tin lưu
+          await this.fileLayerLineService.deleteFile(rsFindOne.id);
+        }
+
+        // xác định lại year cao nhất
+        var topYear = await this.dataSource.query(
+          `
+            SELECT MAX(year) FROM map_layers
+            WHERE idtinh = $1 AND idhuyen = $2
+            `,
+          [provinceNewId, wardNewId],
+        );
+
+        // Export
+        // Khởi tạo thông tin
+        var dataConvert: any = {
+          provinceNewId: provinceNewId,
+          wardNewId: wardNewId,
+          provinceId: null,
+          districtId: null,
+          year: topYear[0]?.max,
+          ssn: true,
+        };
+
+        await this.convertDBToMbtilesFileNew(dataConvert); // Khởi tạo geoline location cũ
+        return { success: true, message: CREATE_SUCCESSFULLY };
       }
     } else {
       return { success: false, message: 'Vui lòng truyền thông tin!' };
