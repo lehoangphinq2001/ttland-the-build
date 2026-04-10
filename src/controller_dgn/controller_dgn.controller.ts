@@ -45,4 +45,9 @@ export class ControllerDgnController {
 
   // =====================================================
   // =====================================================
+
+  @Post('update-geom') // export by wardId Old
+  async updateGeom() {
+    return this.controllerDgnService.updateAllBboxGeoLineNull();
+  }
 }
