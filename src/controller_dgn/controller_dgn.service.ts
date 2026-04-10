@@ -1,9 +1,9 @@
 /* eslint-disable prettier/prettier */
 /* eslint-disable no-var */
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateGeojsonFIleDto } from './dto/create-file-json.dto';
 import { CommonService } from 'src/common/common.service';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { SAVE_FILE } from 'src/common/common.constant';
@@ -14,6 +14,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ExportGeoLineByLocationDto } from './dto/form-export-by-location.dto';
 import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
 import { CREATE_SUCCESSFULLY } from 'src/common/common.message';
+
+export interface BoundingBox {
+  minLon: number;
+  minLat: number;
+  maxLon: number;
+  maxLat: number;
+  bbox: [number, number, number, number]; // [minLon, minLat, maxLon, maxLat]
+}
 
 @Injectable()
 export class ControllerDgnService {
@@ -524,6 +532,140 @@ export class ControllerDgnService {
       }
     } else {
       return { success: false, message: 'Vui lòng truyền thông tin!' };
+    }
+  }
+
+  // ============================================
+  // UPDATE ALL BBOX DỮ LIỆU
+  async updateAllBboxGeoLineNull() {
+    // Lấy danh sách dữ liệu null
+    const listData = await this.repository.find({
+      where: {
+        geom: IsNull(),
+      },
+    });
+
+    if (listData.length === 0) return;
+    for (const item of listData) {
+      try {
+        const dataBbox = await this.getBboxFromFile(item.fullname);
+        const { minLon, minLat, maxLon, maxLat } = dataBbox;
+
+        // Tạo geometry dạng Polygon từ bbox
+        const bboxPolygon: any = {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [minLon, minLat],
+              [maxLon, minLat],
+              [maxLon, maxLat],
+              [minLon, maxLat],
+              [minLon, minLat], // Đóng vòng
+            ],
+          ],
+        };
+
+        await this.repository.update(item.id, {
+          geom: bboxPolygon,
+        });
+      } catch (error) {
+        // Bỏ qua file lỗi, tiếp tục xử lý các file còn lại
+        console.error(`Lỗi xử lý file ${item.fullname}:`, error?.message);
+        continue;
+      }
+    }
+  }
+
+  // ============================================
+  // EXTRACT BBOX GEOJSON
+  async getBboxFromFile(filePath: string): Promise<any> {
+    const absolutePath = await path.resolve(filePath);
+
+    if (!fs.existsSync(absolutePath)) {
+      throw new BadRequestException(`File không tồn tại: ${absolutePath}`);
+    }
+
+    const raw = await fs.readFileSync(absolutePath, 'utf-8');
+    let geojson: any;
+
+    try {
+      geojson = await JSON.parse(raw);
+    } catch {
+      throw new BadRequestException('File không phải định dạng JSON hợp lệ');
+    }
+
+    const coords: [number, number][] = [];
+    await this.extractCoordinates(geojson, coords);
+
+    if (coords.length === 0) {
+      throw new BadRequestException(
+        'Không tìm thấy tọa độ nào trong file GeoJSON',
+      );
+    }
+
+    const lons = coords.map((c) => c[0]);
+    const lats = coords.map((c) => c[1]);
+
+    const minLon = Math.min(...lons);
+    const maxLon = Math.max(...lons);
+    const minLat = Math.min(...lats);
+    const maxLat = Math.max(...lats);
+
+    return {
+      minLon,
+      minLat,
+      maxLon,
+      maxLat,
+      bbox: [minLon, minLat, maxLon, maxLat],
+    };
+  }
+
+  private extractCoordinates(geojson: any, coords: [number, number][]): void {
+    switch (geojson.type) {
+      case 'FeatureCollection':
+        geojson.features?.forEach((f: any) =>
+          this.extractCoordinates(f, coords),
+        );
+        break;
+
+      case 'Feature':
+        if (geojson.geometry) {
+          this.extractCoordinates(geojson.geometry, coords);
+        }
+        break;
+
+      case 'GeometryCollection':
+        geojson.geometries?.forEach((g: any) =>
+          this.extractCoordinates(g, coords),
+        );
+        break;
+
+      case 'Point':
+        coords.push(geojson.coordinates);
+        break;
+
+      case 'MultiPoint':
+      case 'LineString':
+        coords.push(...geojson.coordinates);
+        break;
+
+      case 'MultiLineString':
+      case 'Polygon':
+        geojson.coordinates?.forEach((ring: [number, number][]) =>
+          coords.push(...ring),
+        );
+        break;
+
+      case 'MultiPolygon':
+        geojson.coordinates?.forEach((polygon: [number, number][][]) =>
+          polygon.forEach((ring) => coords.push(...ring)),
+        );
+        break;
+
+      default:
+        throw new BadRequestException(
+          `Geometry type không hỗ trợ: ${geojson.type}`,
+        );
     }
   }
 }
