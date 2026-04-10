@@ -1,3 +1,5 @@
+/* eslint-disable prettier/prettier */
+/* eslint-disable no-var */
 import {
   Injectable,
   Logger,
@@ -224,22 +226,6 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     };
   }
 
-  // async resolveFilename(
-  //   z: number,
-  //   x: number,
-  //   y: number,
-  // ): Promise<string | null> {
-  //   const zi = +z, xi = +x, yi = +y;
-
-  //   const n = Math.pow(2, zi);
-  //   const lon = (xi / n) * 360.0 - 180.0;
-  //   const lat_rad = Math.atan(Math.sinh(Math.PI * (1 - (2 * yi) / n)));
-  //   const lat = (lat_rad * 180.0) / Math.PI;
-
-  //   const result = await this.checkDataInLocation(lat, lon);
-  //   return result?.success ? result?.data?.filename ?? null : null;
-  // }
-
   // Trong class TilesService, thêm cache
   private filenameCache = new LRUCache<string, string | null>({
     max: 2000,
@@ -276,6 +262,8 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       const lat = (lat_rad * 180.0) / Math.PI;
 
       const result = await this.checkDataInLocation(lat, lon);
+      console.log("result", result.data);
+      
       if (result?.success && result?.data?.filename) {
         const filename = result?.data?.filename;
         this.filenameCache.set(cacheKey, filename);
@@ -292,18 +280,59 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     try {
       const infoLocation: any =
         await this.locationNewService.getInfoLocationAll({ lat, lng });
-
       if (!infoLocation?.success) return { success: false, data: null };
-
       let result = await this.fileLayerLineService.getDataLayerInLocationNew(
         infoLocation.data.infoNew.provinceid,
         infoLocation.data.infoNew.wardid,
+        lat,
+        lng,
       );
+
+      var dataTemp = [];
+      if (result?.success == true) {
+        dataTemp = result?.data;
+        var filterTrue = await result?.data?.filter(
+          (item: any) => item?.ingeom == true,
+        );
+        if (filterTrue.length > 0) {
+          // tồn tại bằng true ==> trả thằng dữ liệu hiện có
+          return { success: true, data: filterTrue[0] };
+        } else {
+          // Ngược lại ==> lọc tìm dữ liệu cũ tạm rồi check
+          result = await this.fileLayerLineService.getDataLayerInLocationOld(
+            infoLocation.data.infoOld.provinceid,
+            infoLocation.data.infoOld.districtid,
+            lat,
+            lng,
+          );
+          if (result?.success == true) {
+            var filterTrue = await result?.data?.filter(
+              (item: any) => item?.ingeom == true,
+            );
+            if (filterTrue?.length > 0) { // tồn tại bằng true ==> trả thằng dữ liệu hiện có
+              return { success: true, data: filterTrue[0] };
+            } else if (dataTemp.length > 0) { // Kiểm tra lại data temp
+              return { success: true, data: filterTrue[0] };
+            } else {
+              return { success: false, data: null };
+            }
+          } else {
+            // Dữ liệu cũ không tồn tại
+            if (dataTemp.length > 0) { // Kiểm tra lại data temp
+              return { success: true, data: filterTrue[0] };
+            } else {
+              return { success: false, data: null };
+            }
+          }
+        }
+      }
 
       if (!result.success) {
         result = await this.fileLayerLineService.getDataLayerInLocationOld(
           infoLocation.data.infoOld.provinceid,
           infoLocation.data.infoOld.districtid,
+          lat,
+          lng,
         );
       }
 

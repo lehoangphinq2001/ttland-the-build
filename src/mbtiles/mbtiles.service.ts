@@ -159,12 +159,14 @@ export class MbtilesService implements OnModuleInit, OnModuleDestroy {
       let result = await this.fileLayerLineService.getDataLayerInLocationNew(
         infoLocation.data.infoNew.provinceid,
         infoLocation.data.infoNew.wardid,
+        lat, lng
       );
 
       if (!result.success) {
         result = await this.fileLayerLineService.getDataLayerInLocationOld(
           infoLocation.data.infoOld?.provinceid,
           infoLocation.data.infoOld?.districtid,
+          lat, lng
         );
       }
       if (!result.success) return { success: false, data: null };

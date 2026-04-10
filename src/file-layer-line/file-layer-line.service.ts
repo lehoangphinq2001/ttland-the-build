@@ -19,29 +19,58 @@ export class FileLayerLineService {
     private commonService: CommonService,
   ) {}
 
-  async getDataLayerInLocationNew(provinceid: string, wardid: string) {
-    var data = await this.repository.find({
-      select: {
-        fullname: true,
-        filename: true,
-        year: true,
-      },
-      where: { provinceNewId: provinceid, wardNewId: wardid },
-      order: { year: 'ASC' },
-    });
+  async getDataLayerInLocationNew(
+    provinceid: string,
+    wardid: string,
+    lat: number,
+    lng: number,
+  ) {
+    var data = await this.repository.query(
+      `SELECT 
+        fullname, 
+        filename, 
+        year,
+        CASE 
+          WHEN geom IS NULL THEN NULL
+          WHEN ST_Within(
+            ST_SetSRID(ST_MakePoint($1, $2), 4326),
+            geom
+          ) THEN TRUE
+          ELSE FALSE
+        END AS ingeom
+      FROM file_layer_line
+      WHERE "provinceNewId" = $3 AND "wardNewId" = $4
+      ORDER BY year ASC;`,
+      [lng, lat, provinceid, wardid],
+    );
     return this.commonService._checkArray(data);
   }
 
-  async getDataLayerInLocationOld(provinceid: string, district: string) {
-    var data = await this.repository.find({
-      select: {
-        fullname: true,
-        filename: true,
-        year: true,
-      },
-      where: { provinceId: provinceid, districtId: district },
-      order: { year: 'ASC' },
-    });
+  async getDataLayerInLocationOld(
+    provinceid: string,
+    district: string,
+    lat: number,
+    lng: number,
+  ) {
+    var data = await this.repository.query(
+      `SELECT 
+        fullname, 
+        filename, 
+        year,
+        CASE 
+          WHEN geom IS NULL THEN NULL
+          WHEN ST_Within(
+            ST_SetSRID(ST_MakePoint($1, $2), 4326),
+            geom
+          ) THEN TRUE
+          ELSE FALSE
+        END AS ingeom
+      FROM file_layer_line
+      WHERE "provinceId" = $3 AND "districtId" = $4
+      ORDER BY year ASC;
+      `,
+      [lng, lat, provinceid, district],
+    );
     return this.commonService._checkArray(data);
   }
 
@@ -95,7 +124,7 @@ export class FileLayerLineService {
 
     return this.commonService._checkArray(rs);
   }
-  
+
   async deleteFile(id: number) {
     try {
       var data = await this.repository.findOne({
