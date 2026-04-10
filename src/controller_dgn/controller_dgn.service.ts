@@ -579,37 +579,94 @@ export class ControllerDgnService {
   // ============================================
   // EXTRACT BBOX GEOJSON
   async getBboxFromFile(filePath: string): Promise<any> {
-    const absolutePath = await path.resolve(filePath);
+    const absolutePath = path.resolve(filePath);
 
     if (!fs.existsSync(absolutePath)) {
       throw new BadRequestException(`File không tồn tại: ${absolutePath}`);
     }
 
-    const raw = await fs.readFileSync(absolutePath, 'utf-8');
+    // Dùng stream + json parse để tránh load cả file vào RAM
+    const raw = fs.readFileSync(absolutePath, 'utf-8');
     let geojson: any;
 
     try {
-      geojson = await JSON.parse(raw);
+      geojson = JSON.parse(raw);
     } catch {
       throw new BadRequestException('File không phải định dạng JSON hợp lệ');
     }
 
-    const coords: [number, number][] = [];
-    await this.extractCoordinates(geojson, coords);
+    // Dùng iterative thay vì recursive
+    let minLon = Infinity;
+    let maxLon = -Infinity;
+    let minLat = Infinity;
+    let maxLat = -Infinity;
+    let found = false;
 
-    if (coords.length === 0) {
+    const updateBbox = (coord: [number, number]) => {
+      const [lon, lat] = coord;
+      if (lon < minLon) minLon = lon;
+      if (lon > maxLon) maxLon = lon;
+      if (lat < minLat) minLat = lat;
+      if (lat > maxLat) maxLat = lat;
+      found = true;
+    };
+
+    // Stack-based traversal, không dùng đệ quy
+    const stack: any[] = [geojson];
+
+    while (stack.length > 0) {
+      const node = stack.pop();
+      if (!node || !node.type) continue;
+
+      switch (node.type) {
+        case 'FeatureCollection':
+          if (Array.isArray(node.features)) {
+            for (const f of node.features) stack.push(f);
+          }
+          break;
+
+        case 'Feature':
+          if (node.geometry) stack.push(node.geometry);
+          break;
+
+        case 'GeometryCollection':
+          if (Array.isArray(node.geometries)) {
+            for (const g of node.geometries) stack.push(g);
+          }
+          break;
+
+        case 'Point':
+          updateBbox(node.coordinates);
+          break;
+
+        case 'MultiPoint':
+        case 'LineString':
+          for (const coord of node.coordinates) updateBbox(coord);
+          break;
+
+        case 'MultiLineString':
+        case 'Polygon':
+          for (const ring of node.coordinates)
+            for (const coord of ring) updateBbox(coord);
+          break;
+
+        case 'MultiPolygon':
+          for (const polygon of node.coordinates)
+            for (const ring of polygon)
+              for (const coord of ring) updateBbox(coord);
+          break;
+
+        default:
+          console.warn(`Bỏ qua geometry type không hỗ trợ: ${node.type}`);
+          break;
+      }
+    }
+
+    if (!found) {
       throw new BadRequestException(
         'Không tìm thấy tọa độ nào trong file GeoJSON',
       );
     }
-
-    const lons = coords.map((c) => c[0]);
-    const lats = coords.map((c) => c[1]);
-
-    const minLon = Math.min(...lons);
-    const maxLon = Math.max(...lons);
-    const minLat = Math.min(...lats);
-    const maxLat = Math.max(...lats);
 
     return {
       minLon,
