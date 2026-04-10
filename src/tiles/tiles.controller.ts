@@ -46,9 +46,9 @@ export class TilesController {
         })
         .send(png);
 
-      // if (elapsed > 500) {
-      //   this.logger.warn(`Slow tile z=${z} x=${x} y=${y}: ${elapsed}ms`);
-      // }
+      if (elapsed > 500) {
+        this.logger.warn(`Slow tile z=${z} x=${x} y=${y}: ${elapsed}ms`);
+      }
     } catch (err) {
       // this.logger.error(`Tile error z=${z} x=${x} y=${y}: ${err.message}`);
       res.status(500).json({ error: 'Tile rendering failed' });

@@ -142,9 +142,9 @@ export class GeoserverService {
       Math.min(cropY, expandedHeight - outputHeight),
     );
 
-    console.log(
-      `crop: x=${safeCropX}, y=${safeCropY}, w=${outputWidth}, h=${outputHeight}, imgSize=${expandedWidth}x${expandedHeight}`,
-    );
+    // console.log(
+    //   `crop: x=${safeCropX}, y=${safeCropY}, w=${outputWidth}, h=${outputHeight}, imgSize=${expandedWidth}x${expandedHeight}`,
+    // );
 
     return await sharp(imageBuffer)
       .extract({

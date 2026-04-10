@@ -258,10 +258,6 @@ export class ControllerDgnService {
       }
     });
 
-    console.log(
-      `[clean] Removed ${removed} bad features, kept ${cleaned.length}`,
-    );
-
     fs.writeFileSync(
       outputPath,
       JSON.stringify({

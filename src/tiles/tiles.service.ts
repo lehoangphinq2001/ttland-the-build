@@ -255,9 +255,9 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
     const cacheKey = `${z}/${x}/${y}`;
 
     // Check cache trước
-    // if (this.filenameCache.has(cacheKey)) {
-    //   return this.filenameCache.get(cacheKey) ?? null;
-    // }
+    if (this.filenameCache.has(cacheKey)) {
+      return this.filenameCache.get(cacheKey) ?? null;
+    }
 
     const n = Math.pow(2, z);
 
@@ -276,18 +276,16 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       const lat = (lat_rad * 180.0) / Math.PI;
 
       const result = await this.checkDataInLocation(lat, lon);
-      console.log("result", result.data);
-      
       if (result?.success && result?.data?.filename) {
         const filename = result?.data?.filename;
-        // this.filenameCache.set(cacheKey, filename);
+        this.filenameCache.set(cacheKey, filename);
         return filename;
       }
     }
 
-    // // Không tìm thấy ở bất kỳ điểm nào
-    // this.filenameCache.set(cacheKey, null);
-    // return null;
+    // Không tìm thấy ở bất kỳ điểm nào
+    this.filenameCache.set(cacheKey, null);
+    return null;
   }
 
   private async checkDataInLocation(lat: number, lng: number) {
