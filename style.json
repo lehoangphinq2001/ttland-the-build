@@ -39,7 +39,7 @@
       "filter": ["==", ["geometry-type"], "Polygon"],
       "paint": {
         "line-color": "#020ad9",
-        "line-width": 1.5,
+        "line-width": 1.2,
         "line-opacity": 1
       }
     },
@@ -52,7 +52,7 @@
       "filter": ["==", ["geometry-type"], "LineString"],
       "paint": {
         "line-color": "#020ad9",
-        "line-width": 1.5,
+        "line-width": 1.2,
         "line-opacity": 1
       }
     },

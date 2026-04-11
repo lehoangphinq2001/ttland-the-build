@@ -39,7 +39,7 @@ export class FileLayerLineService {
           ELSE FALSE
         END AS ingeom
       FROM file_layer_line
-      WHERE "provinceNewId" = $3 AND "wardNewId" = $4
+      WHERE "provinceNewId" = $3 AND "wardNewId" = $4 AND status = 'ACTIVE'
       ORDER BY year ASC;`,
       [lng, lat, provinceid, wardid],
     );
@@ -66,7 +66,7 @@ export class FileLayerLineService {
           ELSE FALSE
         END AS ingeom
       FROM file_layer_line
-      WHERE "provinceId" = $3 AND "districtId" = $4
+      WHERE "provinceId" = $3 AND "districtId" = $4 AND status = 'ACTIVE'
       ORDER BY year ASC;
       `,
       [lng, lat, provinceid, district],
