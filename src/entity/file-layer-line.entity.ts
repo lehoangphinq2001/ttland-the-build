@@ -35,9 +35,6 @@ export class FileLayerLine {
   @Column({ nullable: true })
   districtId: string;
 
-  @Column({ nullable: true })
-  wardId: string;
-
   // ============================
   @Column({ nullable: true })
   provinceNewId: string;

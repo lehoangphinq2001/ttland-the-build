@@ -32,8 +32,8 @@ async function bootstrap() {
   });
 
   const config = new DocumentBuilder()
-    .setTitle('SMARTGIS DATA API')
-    .setDescription('API Gateway for SMARTGIS')
+    .setTitle('THONGTINLAND GEOLINE API')
+    .setDescription('API Gateway for THONGTINLAND')
     .setVersion('SAG.v.0.1')
     .addBearerAuth()
     .build();

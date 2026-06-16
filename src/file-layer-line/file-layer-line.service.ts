@@ -111,7 +111,7 @@ export class FileLayerLineService {
     if (title?.trim()) {
       where.title = ILike(`%${title.trim()}%`);
     }
-    if (ssn) {
+    if (ssn != null) {
       where.ssn = ssn;
     }
 

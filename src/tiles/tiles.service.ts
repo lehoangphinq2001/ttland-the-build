@@ -262,8 +262,7 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       const lat = (lat_rad * 180.0) / Math.PI;
 
       const result = await this.checkDataInLocation(lat, lon);
-      console.log("result", result.data);
-      
+
       if (result?.success && result?.data?.filename) {
         const filename = result?.data?.filename;
         this.filenameCache.set(cacheKey, filename);

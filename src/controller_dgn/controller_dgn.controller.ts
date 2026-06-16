@@ -1,3 +1,4 @@
+import { ApiTags } from '@nestjs/swagger';
 import {
   Controller,
   Get,
@@ -11,6 +12,7 @@ import { ControllerDgnService } from './controller_dgn.service';
 import { CreateGeojsonFIleDto } from './dto/create-file-json.dto';
 import { ExportGeoLineByLocationDto } from './dto/form-export-by-location.dto';
 
+@ApiTags('controller-dgn')
 @Controller('controller-dgn')
 export class ControllerDgnController {
   constructor(private readonly controllerDgnService: ControllerDgnService) {}

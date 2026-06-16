@@ -6,7 +6,7 @@ import { CommonService } from 'src/common/common.service';
 import { DataSource, IsNull, Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
-import { SAVE_FILE } from 'src/common/common.constant';
+import { SAVE_FILE, STATUS } from 'src/common/common.constant';
 import { FileLayerLine } from 'src/entity/file-layer-line.entity';
 import { execFile, spawn } from 'child_process';
 import * as fsp from 'fs/promises';
@@ -49,7 +49,6 @@ export class ControllerDgnService {
     dataLine.wardNewId = wardNewId;
     dataLine.provinceId = provinceId;
     dataLine.districtId = districtId;
-    dataLine.wardId = districtId;
     dataLine.year = year;
     dataLine.note = null;
     dataLine.ssn = provinceId == null ? false : true;
@@ -83,7 +82,7 @@ export class ControllerDgnService {
   }
 
   async convertDBToMbtilesFile(createControllerDgnDto: CreateGeojsonFIleDto) {
-    const { districtId, provinceId, provinceNewId, wardNewId, year } =
+    const { districtId, provinceId, provinceNewId, wardNewId, year, ssn } =
       createControllerDgnDto;
     // B1: convert geojson
     var pathFile = await this.createFileGeoJsonProvinceOld(
@@ -100,16 +99,38 @@ export class ControllerDgnService {
     dataLine.wardNewId = wardNewId;
     dataLine.provinceId = provinceId;
     dataLine.districtId = districtId;
-    dataLine.wardId = districtId;
+    dataLine.status = STATUS.ACTIVE;
+    dataLine.sub_address = 'sub_address';
     dataLine.year = year;
     dataLine.note = null;
-    dataLine.ssn = provinceId == null ? false : true;
+    dataLine.ssn = ssn;
     if (pathFile) {
       dataLine.filename = path.parse(pathFile).name + '.mbtiles';
       dataLine.fullname = pathFile;
     }
 
     await this.repository.save(dataLine);
+    if (ssn == false) {
+      await this.dataSource.query(
+        ` UPDATE file_layer_line f
+          SET sub_address = concat_ws(' ', d.name, p.name)
+          FROM province p, district d
+          WHERE p.id = f."provinceId"
+            AND d.id = f."districtId"
+            AND f.ssn = false
+            AND f.sub_address IS NULL;`,
+      );
+    } else {
+      await this.dataSource.query(
+          `UPDATE file_layer_line f
+            SET sub_address = concat_ws(' ', d.ten_xa, p.ten_tinh)
+            FROM province_news p, ward_news d
+            WHERE p.ma_tinh = f."provinceNewId"
+              AND d.ma_xa = f."wardNewId"
+              AND f.ssn = true
+              AND f.sub_address IS NULL;`,
+      );
+    }
 
     // B2: convert mbtiles
     try {
@@ -486,7 +507,7 @@ export class ControllerDgnService {
           provinceId: provinceId,
           districtId: districtId,
           year: topYear[0]?.max,
-          ssn: null,
+          ssn: false,
         };
 
         await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
