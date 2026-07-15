@@ -19,6 +19,7 @@ import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
 import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
 import { TilesModule } from './tiles/tiles.module';
 import { GeoserverModule } from './geoserver/geoserver.module';
+import { ExportGeoServiceModule } from './export-geo-service/export-geo-service.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { GeoserverModule } from './geoserver/geoserver.module';
     FileLayerLineModule,
     TilesModule,
     GeoserverModule,
+    ExportGeoServiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],

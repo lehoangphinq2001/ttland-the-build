@@ -55,6 +55,7 @@ export class TilesController {
     }
   }
 
+
   /** GET /tiles/:z/:x/:y  (không có .png extension) */
   @Get('load/:z/:x/:y')
   async getTileNoExt(
