@@ -2,7 +2,6 @@ import { Module } from '@nestjs/common';
 import { TilesService } from './tiles.service';
 import { TilesController } from './tiles.controller';
 import { CacheModule } from '@nestjs/cache-manager';
-import { getRedisConnectionToken } from '@nestjs-modules/ioredis';
 import { LocationNewService } from 'src/location-new/location-new.service';
 import { FileLayerLineService } from 'src/file-layer-line/file-layer-line.service';
 import { CommonService } from 'src/common/common.service';
@@ -12,7 +11,6 @@ import { FileLayerLine } from 'src/entity/file-layer-line.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 const HTTP_MAX_REDIRECTS = process.env.HTTP_MAX_REDIRECTS;
 const HTTP_TIMEOUT = process.env.HTTP_TIMEOUT;
-import { Redis } from 'ioredis';
 
 @Module({
   imports: [

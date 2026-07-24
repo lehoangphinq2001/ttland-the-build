@@ -1,4 +1,3 @@
-import CorsMiddleware, { RequestMethod } from '@nestjs/common';
 /* eslint-disable prettier/prettier */
 import { JwtModule } from '@nestjs/jwt';
 import { MulterModule } from '@nestjs/platform-express';
@@ -13,14 +12,14 @@ import { join } from 'path';
 import { AUTH_TOKEN_EXPIRATION } from './common/common.constant';
 import { MbtilesModule } from './mbtiles/mbtiles.module';
 import { LocationNewModule } from './location-new/location-new.module';
-import { SecurityMiddleware } from './common/ip-block.middleware';
-import { LogIpMiddleware } from './common/log-ip.middleware';
 import { ControllerDgnModule } from './controller_dgn/controller_dgn.module';
 import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
 import { TilesModule } from './tiles/tiles.module';
 import { GeoserverModule } from './geoserver/geoserver.module';
 import { ExportGeoServiceModule } from './export-geo-service/export-geo-service.module';
 import { ExportGpkgModule } from './export-gpkg/export-gpkg.module';
+import { GpkgReaderModule } from './gpkg-reader/gpkg-reader.module';
+import { TileModule } from './tile/tile.module';
 
 @Module({
   imports: [
@@ -48,9 +47,9 @@ import { ExportGpkgModule } from './export-gpkg/export-gpkg.module';
       username: process.env.USERNAME_DATABASE,
       password: process.env.PASSWORD_DATABASE,
       database: process.env.DATABASE_NAME,
-      autoLoadEntities: true,
+      autoLoadEntities: false,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
-      synchronize: true,
+      synchronize: false,
     }),
     JwtModule,
     MbtilesModule,
@@ -61,6 +60,8 @@ import { ExportGpkgModule } from './export-gpkg/export-gpkg.module';
     GeoserverModule,
     ExportGeoServiceModule,
     ExportGpkgModule,
+    GpkgReaderModule,
+    TileModule,
   ],
   controllers: [AppController],
   providers: [AppService],
