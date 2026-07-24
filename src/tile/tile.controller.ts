@@ -14,10 +14,11 @@ import {
 import { Request, Response } from 'express';
 import { TileService, TileScope } from './tile.service';
 import { FileCatalogService } from './file-catalog.service';
+import { ApiTags } from '@nestjs/swagger';
 
 const LONG_CACHE = 'public, max-age=86400, stale-while-revalidate=604800';
 const SHORT_CACHE = 'public, max-age=60';
-
+@ApiTags('tile')
 @Controller('tile')
 export class TileController {
   private readonly logger = new Logger(TileController.name);

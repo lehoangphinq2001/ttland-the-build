@@ -11,6 +11,8 @@ import {
 import { Request, Response } from 'express';
 import { TilesService } from './tiles.service';
 import { ApiTags } from '@nestjs/swagger';
+import { log } from 'node:console';
+
 @ApiTags('tiles')
 @Controller('tiles')
 export class TilesController {
