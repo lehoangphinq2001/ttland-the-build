@@ -20,6 +20,7 @@ import { FileLayerLineModule } from './file-layer-line/file-layer-line.module';
 import { TilesModule } from './tiles/tiles.module';
 import { GeoserverModule } from './geoserver/geoserver.module';
 import { ExportGeoServiceModule } from './export-geo-service/export-geo-service.module';
+import { ExportGpkgModule } from './export-gpkg/export-gpkg.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ExportGeoServiceModule } from './export-geo-service/export-geo-service.
     TilesModule,
     GeoserverModule,
     ExportGeoServiceModule,
+    ExportGpkgModule,
   ],
   controllers: [AppController],
   providers: [AppService],

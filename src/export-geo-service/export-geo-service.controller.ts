@@ -255,11 +255,9 @@ export class ExportGeoServiceController {
   // ==========================================================
   // Nội bộ
   // ==========================================================
-
   private regionKey(dto: ExportGeoDto, format: ExportFormat): string {
     return `${dto.idtinh}_${dto.idhuyen}_${dto.year}_${format}_${dto.ssn ?? 'any'}`;
   }
-
   private scheduleCleanup(jobId: string): void {
     // unref() để timer không giữ event loop khi app muốn thoát.
     setTimeout(() => this.jobs.delete(jobId), JOB_TTL_MS).unref();

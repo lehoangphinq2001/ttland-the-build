@@ -262,6 +262,8 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       const lat = (lat_rad * 180.0) / Math.PI;
 
       const result = await this.checkDataInLocation(lat, lon);
+      console.log("result", result);
+      
 
       if (result?.success && result?.data?.filename) {
         const filename = result?.data?.filename;
@@ -280,6 +282,7 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
       const infoLocation: any =
         await this.locationNewService.getInfoLocationAll({ lat, lng });
       if (!infoLocation?.success) return { success: false, data: null };
+
       let result = await this.fileLayerLineService.getDataLayerInLocationNew(
         infoLocation.data.infoNew.provinceid,
         infoLocation.data.infoNew.wardid,
@@ -438,6 +441,7 @@ export class TilesService implements OnModuleInit, OnModuleDestroy {
   async getRasterTile(z: number, x: number, y: number): Promise<Buffer> {
     // Resolve filename trực tiếp, không qua cache
     const filename = await this.resolveFilename(z, x, y);
+    
     if (!filename) {
       return this.emptyPNG();
     }
