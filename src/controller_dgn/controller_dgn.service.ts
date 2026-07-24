@@ -35,6 +35,52 @@ export class ControllerDgnService {
     private dataSource: DataSource, // private httpService: HttpService,
   ) {}
 
+  // async convertDBToMbtilesFileNew(
+  //   createControllerDgnDto: CreateGeojsonFIleDto,
+  // ) {
+  //   const { districtId, provinceId, provinceNewId, wardNewId, year } =
+  //     createControllerDgnDto;
+  //   // B1: convert geojson
+  //   var pathFile = await this.createFileGeoJson(createControllerDgnDto);
+
+  //   var dataLine = new FileLayerLine();
+  //   dataLine.accountId = 1;
+  //   dataLine.provinceNewId = provinceNewId;
+  //   dataLine.wardNewId = wardNewId;
+  //   dataLine.provinceId = provinceId;
+  //   dataLine.districtId = districtId;
+  //   dataLine.year = year;
+  //   dataLine.status = STATUS.ACTIVE;
+  //   dataLine.note = null;
+  //   dataLine.ssn = provinceId == null ? false : true;
+  //   if (pathFile) {
+  //     // dataLine.fullname = pathFile; // đường dẫn đầy đủ
+  //     // dataLine.filename = path.basename(pathFile); // chỉ tên file
+  //     dataLine.filename = path.parse(pathFile).name + '.mbtiles';
+  //     // dataLine.extension = path.parse(pathFile).ext;
+  //     dataLine.fullname = pathFile;
+  //   }
+
+  //   await this.repository.save(dataLine);
+
+  //   // B2: convert mbtiles
+  //   try {
+  //     if (!pathFile) return null;
+  //     const pathFolder = SAVE_FILE.DGN_FILE;
+  //     // đảm bảo folder tồn tại
+  //     await fsp.mkdir(pathFolder, { recursive: true });
+  //     // tên file không có extension
+  //     const fileName = path.parse(pathFile).name;
+  //     // output mbtiles
+  //     const output = path.join(pathFolder, `${fileName}.mbtiles`);
+  //     // gọi tippecanoe
+  //     const result = await this.convertGeoJsonToMbtilesUpdate(pathFile, output);
+  //     return result;
+  //   } catch (error) {
+  //     console.error('convert mbtiles error:', error);
+  //     return null;
+  //   }
+  // }
   async convertDBToMbtilesFileNew(
     createControllerDgnDto: CreateGeojsonFIleDto,
   ) {
@@ -51,12 +97,11 @@ export class ControllerDgnService {
     dataLine.districtId = districtId;
     dataLine.year = year;
     dataLine.note = null;
-    dataLine.ssn = provinceId == null ? false : true;
+    // ✅ hàm này chỉ dùng cho luồng mới (provinceNewId/wardNewId) -> luôn ssn = true
+    dataLine.ssn = true;
+
     if (pathFile) {
-      // dataLine.fullname = pathFile; // đường dẫn đầy đủ
-      // dataLine.filename = path.basename(pathFile); // chỉ tên file
       dataLine.filename = path.parse(pathFile).name + '.mbtiles';
-      // dataLine.extension = path.parse(pathFile).ext;
       dataLine.fullname = pathFile;
     }
 
@@ -66,13 +111,9 @@ export class ControllerDgnService {
     try {
       if (!pathFile) return null;
       const pathFolder = SAVE_FILE.DGN_FILE;
-      // đảm bảo folder tồn tại
       await fsp.mkdir(pathFolder, { recursive: true });
-      // tên file không có extension
       const fileName = path.parse(pathFile).name;
-      // output mbtiles
       const output = path.join(pathFolder, `${fileName}.mbtiles`);
-      // gọi tippecanoe
       const result = await this.convertGeoJsonToMbtilesUpdate(pathFile, output);
       return result;
     } catch (error) {
@@ -122,7 +163,7 @@ export class ControllerDgnService {
       );
     } else {
       await this.dataSource.query(
-          `UPDATE file_layer_line f
+        `UPDATE file_layer_line f
             SET sub_address = concat_ws(' ', d.ten_xa, p.ten_tinh)
             FROM province_news p, ward_news d
             WHERE p.ma_tinh = f."provinceNewId"
@@ -298,12 +339,56 @@ export class ControllerDgnService {
   }
   // ****************************************************
 
+  // async createFileGeoJson(createControllerDgnDto: CreateGeojsonFIleDto) {
+  //   try {
+  //     const { districtId, provinceId, provinceNewId, wardNewId, year } =
+  //       createControllerDgnDto;
+
+  //     const rows = await this.dataSource.query(`
+  //     SELECT json_build_object(
+  //       'type','Feature',
+  //       'id',id,
+  //       'geometry', ST_AsGeoJSON(geom)::json,
+  //       'properties', json_build_object('gid', id)
+  //     ) AS feature
+  //     FROM dgn_polygon_layers
+  //     WHERE idtinh= '${provinceNewId}'
+  //       AND idxa= '${wardNewId}'
+  //       AND year= ${year}
+  //       AND (ssn=false OR ssn IS NULL)
+  //   `);
+
+  //     const features = rows.map((row) => row.feature);
+
+  //     const geojson = {
+  //       type: 'FeatureCollection',
+  //       features,
+  //     };
+
+  //     const folder = path.join(SAVE_FILE.DGN_FILE);
+
+  //     if (!fs.existsSync(folder)) {
+  //       fs.mkdirSync(folder, { recursive: true });
+  //     }
+
+  //     const filePath = path.join(folder, `${year}_${Date.now()}.geojson`);
+
+  //     fs.writeFileSync(filePath, JSON.stringify(geojson));
+
+  //     return filePath;
+  //   } catch (error) {
+  //     console.error(error);
+  //     return null;
+  //   }
+  // }
   async createFileGeoJson(createControllerDgnDto: CreateGeojsonFIleDto) {
     try {
       const { districtId, provinceId, provinceNewId, wardNewId, year } =
         createControllerDgnDto;
 
-      const rows = await this.dataSource.query(`
+      // ✅ luồng mới -> phải lọc ssn = true (không phải false/null)
+      const rows = await this.dataSource.query(
+        `
       SELECT json_build_object(
         'type','Feature',
         'id',id,
@@ -311,11 +396,17 @@ export class ControllerDgnService {
         'properties', json_build_object('gid', id)
       ) AS feature
       FROM dgn_polygon_layers
-      WHERE idtinh= '${provinceNewId}'
-        AND idxa= '${wardNewId}'
-        AND year= ${year}
-        AND (ssn=false OR ssn IS NULL)
-    `);
+      WHERE idtinh = $1
+        AND idxa = $2
+        AND year = $3
+        AND ssn = true
+    `,
+        [provinceNewId, wardNewId, year],
+      );
+
+      if (rows.length == 0) {
+        return null;
+      }
 
       const features = rows.map((row) => row.feature);
 
@@ -341,6 +432,55 @@ export class ControllerDgnService {
     }
   }
 
+  // async createFileGeoJsonProvinceOld(
+  //   createControllerDgnDto: CreateGeojsonFIleDto,
+  // ) {
+  //   try {
+  //     const { districtId, provinceId, provinceNewId, wardNewId, year } =
+  //       createControllerDgnDto;
+
+  //     const rows = await this.dataSource.query(`
+  //     SELECT json_build_object(
+  //       'type','Feature',
+  //       'id',id,
+  //       'geometry', ST_AsGeoJSON(geom)::json,
+  //       'properties', json_build_object('gid', id)
+  //     ) AS feature
+  //     FROM dgn_polygon_layers
+  //     WHERE idtinh= '${provinceId}'
+  //       AND idhuyen= '${districtId}'
+  //       AND year= ${year}
+  //       AND (ssn=false OR ssn IS NULL)
+  //   `);
+
+  //     if (rows.length == 0) {
+  //       return null;
+  //     }
+
+  //     const features = rows.map((row) => row.feature);
+
+  //     const geojson = {
+  //       type: 'FeatureCollection',
+  //       features,
+  //     };
+
+  //     const folder = path.join(SAVE_FILE.DGN_FILE);
+
+  //     if (!fs.existsSync(folder)) {
+  //       fs.mkdirSync(folder, { recursive: true });
+  //     }
+
+  //     const filePath = path.join(folder, `${year}_${Date.now()}.geojson`);
+
+  //     fs.writeFileSync(filePath, JSON.stringify(geojson));
+
+  //     return filePath;
+  //   } catch (error) {
+  //     console.error(error);
+  //     return null;
+  //   }
+  // }
+
   async createFileGeoJsonProvinceOld(
     createControllerDgnDto: CreateGeojsonFIleDto,
   ) {
@@ -348,7 +488,8 @@ export class ControllerDgnService {
       const { districtId, provinceId, provinceNewId, wardNewId, year } =
         createControllerDgnDto;
 
-      const rows = await this.dataSource.query(`
+      const rows = await this.dataSource.query(
+        `
       SELECT json_build_object(
         'type','Feature',
         'id',id,
@@ -356,11 +497,13 @@ export class ControllerDgnService {
         'properties', json_build_object('gid', id)
       ) AS feature
       FROM dgn_polygon_layers
-      WHERE idtinh= '${provinceId}'
-        AND idhuyen= '${districtId}'
-        AND year= ${year}
-        AND (ssn=false OR ssn IS NULL)
-    `);
+      WHERE idtinh = $1
+        AND idhuyen = $2
+        AND year = $3
+        AND (ssn = false OR ssn IS NULL)
+    `,
+        [provinceId, districtId, year],
+      );
 
       if (rows.length == 0) {
         return null;
@@ -476,6 +619,81 @@ export class ControllerDgnService {
     }
   }
   // ************************************************
+  // async createGeoLineByForm(dto: ExportGeoLineByLocationDto) {
+  //   const { districtId, provinceId, provinceNewId, wardNewId, ssn } = dto;
+
+  //   if (ssn == false) {
+  //     if (provinceId && districtId) {
+  //       // Xác định dữ liệu hiện có
+  //       var rsFindOne = await this.repository.findOne({
+  //         where: { provinceId: provinceId, districtId: districtId },
+  //       });
+  //       if (rsFindOne) {
+  //         // Xóa file và thông tin lưu
+  //         await this.fileLayerLineService.deleteFile(rsFindOne.id);
+  //       }
+
+  //       // xác định lại year cao nhất
+  //       var topYear = await this.dataSource.query(
+  //         `
+  //           SELECT MAX(year) FROM map_layers
+  //           WHERE idtinh = $1 AND idhuyen = $2
+  //           `,
+  //         [provinceId, districtId],
+  //       );
+
+  //       // Export
+  //       // Khởi tạo thông tin
+  //       var dataConvert: any = {
+  //         provinceNewId: null,
+  //         wardNewId: null,
+  //         provinceId: provinceId,
+  //         districtId: districtId,
+  //         year: topYear[0]?.max,
+  //         ssn: false,
+  //       };
+
+  //       await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
+  //       return { success: true, message: CREATE_SUCCESSFULLY };
+  //     }
+  //   } else if (ssn == true) {
+  //     if (provinceNewId && wardNewId) {
+  //       // Xác định dữ liệu hiện có
+  //       var rsFindOne = await this.repository.findOne({
+  //         where: { provinceNewId: provinceNewId, wardNewId: wardNewId },
+  //       });
+  //       if (rsFindOne) {
+  //         // Xóa file và thông tin lưu
+  //         await this.fileLayerLineService.deleteFile(rsFindOne.id);
+  //       }
+
+  //       // xác định lại year cao nhất
+  //       var topYear = await this.dataSource.query(
+  //         `
+  //           SELECT MAX(year) FROM map_layers
+  //           WHERE idtinh = $1 AND idhuyen = $2
+  //           `,
+  //         [provinceNewId, wardNewId],
+  //       );
+
+  //       // Export
+  //       // Khởi tạo thông tin
+  //       var dataConvert: any = {
+  //         provinceNewId: provinceNewId,
+  //         wardNewId: wardNewId,
+  //         provinceId: null,
+  //         districtId: null,
+  //         year: topYear[0]?.max,
+  //         ssn: true,
+  //       };
+
+  //       await this.convertDBToMbtilesFileNew(dataConvert); // Khởi tạo geoline location cũ
+  //       return { success: true, message: CREATE_SUCCESSFULLY };
+  //     }
+  //   } else {
+  //     return { success: false, message: 'Vui lòng truyền thông tin!' };
+  //   }
+  // }
   async createGeoLineByForm(dto: ExportGeoLineByLocationDto) {
     const { districtId, provinceId, provinceNewId, wardNewId, ssn } = dto;
 
@@ -490,17 +708,16 @@ export class ControllerDgnService {
           await this.fileLayerLineService.deleteFile(rsFindOne.id);
         }
 
-        // xác định lại year cao nhất
+        // xác định lại year cao nhất (luồng cũ: lọc theo idtinh + idhuyen, ssn=false/null)
         var topYear = await this.dataSource.query(
           `
-            SELECT MAX(year) FROM map_layers
-            WHERE idtinh = $1 AND idhuyen = $2
-            `,
+          SELECT MAX(year) FROM map_layers
+          WHERE idtinh = $1 AND idhuyen = $2
+            AND (ssn = false OR ssn IS NULL)
+          `,
           [provinceId, districtId],
         );
 
-        // Export
-        // Khởi tạo thông tin
         var dataConvert: any = {
           provinceNewId: null,
           wardNewId: null,
@@ -512,6 +729,12 @@ export class ControllerDgnService {
 
         await this.convertDBToMbtilesFile(dataConvert); // Khởi tạo geoline location cũ
         return { success: true, message: CREATE_SUCCESSFULLY };
+      } else {
+        // ✅ thiếu provinceId/districtId
+        return {
+          success: false,
+          message: 'Vui lòng truyền provinceId và districtId!',
+        };
       }
     } else if (ssn == true) {
       if (provinceNewId && wardNewId) {
@@ -524,17 +747,16 @@ export class ControllerDgnService {
           await this.fileLayerLineService.deleteFile(rsFindOne.id);
         }
 
-        // xác định lại year cao nhất
+        // ✅ xác định lại year cao nhất (luồng mới: lọc theo idtinh + idxa, ssn=true)
         var topYear = await this.dataSource.query(
           `
-            SELECT MAX(year) FROM map_layers
-            WHERE idtinh = $1 AND idhuyen = $2
-            `,
+          SELECT MAX(year) FROM map_layers
+          WHERE idtinh = $1 AND idxa = $2
+            AND ssn = true
+          `,
           [provinceNewId, wardNewId],
         );
 
-        // Export
-        // Khởi tạo thông tin
         var dataConvert: any = {
           provinceNewId: provinceNewId,
           wardNewId: wardNewId,
@@ -544,8 +766,14 @@ export class ControllerDgnService {
           ssn: true,
         };
 
-        await this.convertDBToMbtilesFileNew(dataConvert); // Khởi tạo geoline location cũ
+        await this.convertDBToMbtilesFileNew(dataConvert); // Khởi tạo geoline location mới
         return { success: true, message: CREATE_SUCCESSFULLY };
+      } else {
+        // ✅ thiếu provinceNewId/wardNewId
+        return {
+          success: false,
+          message: 'Vui lòng truyền provinceNewId và wardNewId!',
+        };
       }
     } else {
       return { success: false, message: 'Vui lòng truyền thông tin!' };
